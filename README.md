@@ -118,6 +118,30 @@ agent-thread-tools and the skill are installed:
 Cloud sessions started from claude.ai/code or the mobile app without Remote Control
 run on Anthropic's machines, where the tool is not installed.
 
+### Automatic handoff
+
+Turn it on once, and Claude hands off by itself when a session gets large:
+
+```bash
+agent-thread-tools install-skill --agent claude --auto-handoff --at 150k
+```
+
+After each turn, a Claude Code hook checks the session's context size. The first
+time it passes the threshold (`--at`, default `150k`; `60%` of the context window
+also works), Claude runs `/thread-handoff` and tells you it's saved. You run `/clear`
+and continue in a fresh, small session. It asks once per session, so you can keep
+going if you prefer.
+
+This saves tokens because every request resends the whole conversation: rotating at
+150k instead of letting a session run toward auto-compaction keeps every later
+request small. The handoff itself costs a few thousand tokens to write.
+
+A second hook runs just before any compaction and saves a redacted draft handoff to
+`.reference/handoffs/`, so an unplanned compaction still leaves a record. Turn both
+off with `--no-auto-handoff`, or for one session with `AGENT_THREAD_AUTO_HANDOFF=off`.
+The hooks run where the session runs; there have been reports of Claude Code hooks
+not firing in the desktop app, so check that it works there before relying on it.
+
 ## 📦 What a handoff leaves behind
 
 ```text
@@ -222,7 +246,7 @@ Start at [Documentation](docs/README.md), or go straight to a guide:
 ## 📋 Project
 
 <table>
-  <tr><td>🏷️ <strong>Version</strong></td><td><code>2.0.0</code> · <a href="CHANGELOG.md">Changelog</a></td></tr>
+  <tr><td>🏷️ <strong>Version</strong></td><td><code>2.1.0</code> · <a href="CHANGELOG.md">Changelog</a></td></tr>
   <tr><td>🐛 <strong>Issues</strong></td><td><a href="https://github.com/zenzig/agent-thread-tools/issues">Report a bug or request a feature</a></td></tr>
   <tr><td>🔒 <strong>Security</strong></td><td>Read the <a href="SECURITY.md">security policy</a> before reporting a vulnerability</td></tr>
   <tr><td>🛠️ <strong>Development</strong></td><td>See the <a href="docs/development.md">development guide</a> for tests and package checks</td></tr>

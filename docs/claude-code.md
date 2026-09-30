@@ -77,6 +77,33 @@ Handoff markers are kept in `~/.codex/thread-tools/handoff-markers.jsonl` when
 `~/.claude/thread-tools/handoff-markers.jsonl` otherwise. Set
 `AGENT_THREAD_HANDOFF_MARKER_FILE` to use another file.
 
+## Automatic handoff
+
+```bash
+agent-thread-tools install-skill --agent claude --auto-handoff --at 150k
+```
+
+This adds two hooks to `~/.claude/settings.json`, next to any hooks you already
+have (a backup is saved as `settings.json.agent-thread-tools.bak`):
+
+- `Stop` runs `agent-thread-tools hook claude-stop --at 150k` after each turn. It
+  reads the context size of the latest reply from the end of the session file. The
+  first time a finished turn is past the threshold, it asks Claude to run
+  `/thread-handoff` and to tell you to run `/clear`. It asks once per session
+  (recorded in `~/.claude/thread-tools/auto-handoff/`), never interrupts a turn that
+  is still working, and never repeats itself in a loop.
+- `PreCompact` runs `agent-thread-tools hook claude-precompact` before any
+  compaction. If the project has a `.reference/` folder, it saves a redacted draft
+  handoff there first.
+
+`--at` takes a token count (`150k`, `150000`, `1m`) or a share of the context window
+(`60%`). Remove the hooks with `--no-auto-handoff`, or skip them for one session by
+starting Claude Code with `AGENT_THREAD_AUTO_HANDOFF=off`. Sessions started after
+the change pick up the hooks; restart a running session to use them.
+
+The hooks run where the session runs. There have been reports of Claude Code hooks
+not firing in the desktop app, so check that it works there before relying on it.
+
 ## Archive and recovery
 
 Old sessions can move to external storage with `session-archive --agent claude`.

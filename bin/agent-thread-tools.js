@@ -17,7 +17,11 @@ const PYTHON_TOOLS = new Map([
   ["visual-archive", "agent-thread-visual-archive.py"],
   ["recover", "agent-thread-recover.py"],
   ["reference", "agent-thread-reference.py"],
+  ["hook", "agent-thread-hook.py"],
 ]);
+
+const HOOK_COMMAND = "agent-thread-tools hook";
+const THRESHOLD_PATTERN = /^\d+(\.\d+)?\s*[km]?$|^\d+(\.\d+)?\s*%$/i;
 
 const HELP = `agent-thread-tools ${VERSION}
 
@@ -30,6 +34,8 @@ Usage:
   agent-thread-tools recover [args...]
   agent-thread-tools reference init|commit [--project DIR] [-m MESSAGE]
   agent-thread-tools install-skill [--agent codex|claude]
+  agent-thread-tools install-skill --agent claude --auto-handoff [--at 150k]
+  agent-thread-tools install-skill --agent claude --no-auto-handoff
   agent-thread-tools --version
 
 Examples:
@@ -58,7 +64,20 @@ function main(argv) {
     return 0;
   }
   if (command === "install-skill") {
-    return skillAgent(args) === "claude" ? installClaudeSkill() : installSkill();
+    if (skillAgent(args) !== "claude") {
+      return installSkill();
+    }
+    const installed = installClaudeSkill();
+    if (installed !== 0) {
+      return installed;
+    }
+    if (args.includes("--auto-handoff")) {
+      return configureAutoHandoff(optionValue(args, "--at") || "150k");
+    }
+    if (args.includes("--no-auto-handoff")) {
+      return configureAutoHandoff(null);
+    }
+    return 0;
   }
   if (PYTHON_TOOLS.has(command)) {
     return runPythonTool(PYTHON_TOOLS.get(command), args);
@@ -114,6 +133,72 @@ function skillAgent(args) {
   const hasCodex = fs.existsSync(path.join(os.homedir(), ".codex"));
   const hasClaude = fs.existsSync(path.join(os.homedir(), ".claude"));
   return !hasCodex && hasClaude ? "claude" : "codex";
+}
+
+function optionValue(args, name) {
+  const index = args.indexOf(name);
+  return index !== -1 ? args[index + 1] : undefined;
+}
+
+// Adds (threshold given) or removes (null) the auto-handoff hooks in ~/.claude/settings.json,
+// leaving every other setting and hook untouched.
+function configureAutoHandoff(threshold) {
+  if (threshold !== null && !THRESHOLD_PATTERN.test(threshold.trim())) {
+    process.stderr.write("--at must look like 150k, 150000, 1m, or 60%\n");
+    return 1;
+  }
+  const settingsFile = path.join(os.homedir(), ".claude", "settings.json");
+  let settings = {};
+  if (fs.existsSync(settingsFile)) {
+    try {
+      settings = JSON.parse(fs.readFileSync(settingsFile, "utf8"));
+    } catch (error) {
+      process.stderr.write(`Could not read ${settingsFile} (${error.message}); it was not changed.\n`);
+      return 1;
+    }
+    fs.copyFileSync(settingsFile, `${settingsFile}.agent-thread-tools.bak`);
+  }
+  settings.hooks = settings.hooks || {};
+  for (const event of ["Stop", "PreCompact"]) {
+    const groups = (settings.hooks[event] || [])
+      .map((group) => ({
+        ...group,
+        hooks: (group.hooks || []).filter(
+          (hook) => !(typeof hook.command === "string" && hook.command.startsWith(HOOK_COMMAND))
+        ),
+      }))
+      .filter((group) => group.hooks.length > 0);
+    settings.hooks[event] = groups;
+  }
+  if (threshold !== null) {
+    settings.hooks.Stop.push({
+      matcher: "",
+      hooks: [{ type: "command", command: `${HOOK_COMMAND} claude-stop --at ${threshold.trim()}`, timeout: 30 }],
+    });
+    settings.hooks.PreCompact.push({
+      matcher: "",
+      hooks: [{ type: "command", command: `${HOOK_COMMAND} claude-precompact`, timeout: 120 }],
+    });
+  }
+  for (const event of ["Stop", "PreCompact"]) {
+    if (settings.hooks[event].length === 0) {
+      delete settings.hooks[event];
+    }
+  }
+  if (Object.keys(settings.hooks).length === 0) {
+    delete settings.hooks;
+  }
+  fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
+  fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`);
+  process.stdout.write(
+    threshold !== null
+      ? `\nAuto-handoff is on: after a turn ends with the context past ${threshold.trim()} tokens, ` +
+          "Claude runs /thread-handoff once and asks you to run /clear.\n" +
+          "Sessions started from now on use it; restart a running session. Turn it off with: " +
+          "agent-thread-tools install-skill --agent claude --no-auto-handoff\n"
+      : "\nAuto-handoff is off.\n"
+  );
+  return 0;
 }
 
 function installClaudeSkill() {

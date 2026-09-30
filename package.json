@@ -1,6 +1,6 @@
 {
   "name": "agent-thread-tools",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "CLI health checks, handoffs, session archives, visual archives, and recovery tools for OpenAI Codex and Claude Code session threads.",
   "license": "MIT",
   "author": "Rich Olson",

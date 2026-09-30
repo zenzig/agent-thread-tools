@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.1.0 - Unreleased
+
+- Add automatic handoff for Claude Code:
+  `install-skill --agent claude --auto-handoff [--at 150k]` installs a `Stop` hook
+  that asks Claude to run `/thread-handoff` once the session's context passes the
+  threshold, and a `PreCompact` hook that saves a redacted draft handoff to
+  `.reference/handoffs/` before compaction. `--no-auto-handoff` removes both, and
+  `AGENT_THREAD_AUTO_HANDOFF=off` skips them for one session.
+- Add `agent-thread-tools hook claude-stop|claude-precompact`, the commands those
+  hooks run.
+
 ## 2.0.0 - 2026-09-26
 
 - Rename the project to `agent-thread-tools` (npm package, GitHub repository, command,
