@@ -91,7 +91,7 @@ The plugin brings the `/thread-handoff` skill and the two automatic-handoff hook
 below, and runs the Python tools bundled with it, so the npm package is optional
 (install it for `health`, archives, and recovery from a terminal). It needs Python 3
 on the machine where Claude Code runs. Set the threshold with
-`AGENT_THREAD_AUTO_HANDOFF_AT` (default `150k`), for example in the `env` section of
+`AGENT_THREAD_AUTO_HANDOFF_AT` (default `250k`), for example in the `env` section of
 `~/.claude/settings.json`; `AGENT_THREAD_AUTO_HANDOFF=off` turns the hooks off.
 Plugins from your own marketplaces don't update automatically unless you turn that on
 in `/plugin`, under Marketplaces.
@@ -105,14 +105,16 @@ plugins.
 ## Automatic handoff
 
 ```bash
-agent-thread-tools install-skill --agent claude --auto-handoff --at 150k
+agent-thread-tools install-skill --agent claude --auto-handoff --at 250k
 ```
 
 Without the plugin, this adds two hooks to `~/.claude/settings.json`, next to any hooks you already
 have (a backup is saved as `settings.json.agent-thread-tools.bak`):
 
-- `Stop` runs `agent-thread-tools hook claude-stop --at 150k` after each turn. It
-  reads the context size of the latest reply from the end of the session file. The
+- `Stop` runs `agent-thread-tools hook claude-stop --at 250k` after each turn. It
+  reads the context size of the latest reply from the end of the session file
+  (Claude Code writes a reply to the file just after the hook runs, so this is the
+  size as of the previous reply). The
   first time a finished turn is past the threshold, it asks Claude to run
   `/thread-handoff` and to tell you to run `/clear`. It asks once per session
   (recorded in `~/.claude/thread-tools/auto-handoff/`), never interrupts a turn that

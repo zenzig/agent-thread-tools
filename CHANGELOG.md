@@ -3,7 +3,7 @@
 ## 2.1.0 - Unreleased
 
 - Add automatic handoff for Claude Code:
-  `install-skill --agent claude --auto-handoff [--at 150k]` installs a `Stop` hook
+  `install-skill --agent claude --auto-handoff [--at 250k]` installs a `Stop` hook
   that asks Claude to run `/thread-handoff` once the session's context passes the
   threshold, and a `PreCompact` hook that saves a redacted draft handoff to
   `.reference/handoffs/` before compaction. `--no-auto-handoff` removes both, and

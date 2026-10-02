@@ -118,7 +118,7 @@ ln -s "$(pwd)/skills/thread-handoff" ~/.claude/skills/thread-handoff
 
 # Codex
 mkdir -p ~/.codex/skills
-ln -s "$(pwd)/skills/codex-thread-handoff" ~/.codex/skills/codex-thread-handoff
+ln -s "$(pwd)/codex-skills/codex-thread-handoff" ~/.codex/skills/codex-thread-handoff
 ```
 
 Remove an installed copy first (`rm -r ~/.claude/skills/thread-handoff`) if one

@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL_ROOT = ROOT / "skills" / "codex-thread-handoff"
+SKILL_ROOT = ROOT / "codex-skills" / "codex-thread-handoff"
 
 
 def test_handoff_skill_uses_deferred_workflow_reference() -> None:

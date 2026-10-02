@@ -17,9 +17,9 @@ def test_plugin_manifest_matches_the_package() -> None:
     package = load("package.json")
     assert plugin["name"] == "agent-thread-tools"
     assert plugin["version"] == package["version"] == (ROOT / "VERSION").read_text().strip()
-    # Only the Claude Code skill; the Codex skill in the same repo must not load.
-    assert plugin["skills"] == ["./skills/thread-handoff"]
-    assert (ROOT / "skills" / "thread-handoff" / "SKILL.md").is_file()
+    # Claude Code loads every skill in skills/, so it must hold only the Claude Code skill.
+    assert "skills" not in plugin
+    assert sorted(path.name for path in (ROOT / "skills").iterdir()) == ["thread-handoff"]
 
 
 def test_marketplace_lists_the_plugin_from_this_repository() -> None:

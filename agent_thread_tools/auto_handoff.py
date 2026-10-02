@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-DEFAULT_THRESHOLD = "150k"
+DEFAULT_THRESHOLD = "250k"
 TAIL_BYTES = 4 * 1024 * 1024
 DISABLE_ENV = "AGENT_THREAD_AUTO_HANDOFF"
 

@@ -131,7 +131,7 @@ run on Anthropic's machines, where the tool is not installed.
 ### Automatic handoff
 
 After each turn, a hook checks the session's context size. The first time it passes
-the threshold (default `150k` tokens, or a share such as `60%`), Claude runs
+the threshold (default `250k` tokens, or a share such as `60%`), Claude runs
 `/thread-handoff` and tells you it's saved; you run `/clear` and continue in a small,
 fresh session. It asks once per session. This saves tokens because every request
 resends the whole conversation, so rotating early keeps every later request small.
@@ -139,7 +139,7 @@ A second hook saves a redacted draft to `.reference/handoffs/` before any compac
 
 The plugin turns this on; set its threshold with `AGENT_THREAD_AUTO_HANDOFF_AT`.
 Without the plugin, run `agent-thread-tools install-skill --agent claude
---auto-handoff --at 150k` (and `--no-auto-handoff` to remove it). Use one or the
+--auto-handoff --at 250k` (and `--no-auto-handoff` to remove it). Use one or the
 other, not both. `AGENT_THREAD_AUTO_HANDOFF=off` skips it for a session. Hooks may not
 fire in the desktop app (a reported Claude Code issue), so check before relying on it.
 

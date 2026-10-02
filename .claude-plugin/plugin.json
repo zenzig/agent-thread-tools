@@ -10,6 +10,11 @@
   "homepage": "https://github.com/zenzig/agent-thread-tools#readme",
   "repository": "https://github.com/zenzig/agent-thread-tools",
   "license": "MIT",
-  "keywords": ["handoff", "context", "session-health", "compaction", "memory"],
-  "skills": ["./skills/thread-handoff"]
+  "keywords": [
+    "handoff",
+    "context",
+    "session-health",
+    "compaction",
+    "memory"
+  ]
 }

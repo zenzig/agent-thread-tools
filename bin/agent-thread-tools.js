@@ -34,7 +34,7 @@ Usage:
   agent-thread-tools recover [args...]
   agent-thread-tools reference init|commit [--project DIR] [-m MESSAGE]
   agent-thread-tools install-skill [--agent codex|claude]
-  agent-thread-tools install-skill --agent claude --auto-handoff [--at 150k]
+  agent-thread-tools install-skill --agent claude --auto-handoff [--at 250k]
   agent-thread-tools install-skill --agent claude --no-auto-handoff
   agent-thread-tools --version
 
@@ -72,7 +72,7 @@ function main(argv) {
       return installed;
     }
     if (args.includes("--auto-handoff")) {
-      return configureAutoHandoff(optionValue(args, "--at") || "150k");
+      return configureAutoHandoff(optionValue(args, "--at") || "250k");
     }
     if (args.includes("--no-auto-handoff")) {
       return configureAutoHandoff(null);
@@ -241,7 +241,7 @@ function installSkill() {
 
   try {
     fs.mkdirSync(skillsDir, { recursive: true });
-    const source = path.join(ROOT, "skills", "codex-thread-handoff");
+    const source = path.join(ROOT, "codex-skills", "codex-thread-handoff");
     const sourceSkill = path.join(source, "SKILL.md");
     const target = path.join(skillsDir, "codex-thread-handoff");
     const targetSkill = path.join(target, "SKILL.md");
