@@ -77,13 +77,38 @@ Handoff markers are kept in `~/.codex/thread-tools/handoff-markers.jsonl` when
 `~/.claude/thread-tools/handoff-markers.jsonl` otherwise. Set
 `AGENT_THREAD_HANDOFF_MARKER_FILE` to use another file.
 
+## Plugin
+
+agent-thread-tools is also a Claude Code plugin. The repository is its own
+marketplace:
+
+```text
+/plugin marketplace add zenzig/agent-thread-tools
+/plugin install agent-thread-tools@agent-thread-tools
+```
+
+The plugin brings the `/thread-handoff` skill and the two automatic-handoff hooks
+below, and runs the Python tools bundled with it, so the npm package is optional
+(install it for `health`, archives, and recovery from a terminal). It needs Python 3
+on the machine where Claude Code runs. Set the threshold with
+`AGENT_THREAD_AUTO_HANDOFF_AT` (default `150k`), for example in the `env` section of
+`~/.claude/settings.json`; `AGENT_THREAD_AUTO_HANDOFF=off` turns the hooks off.
+Plugins from your own marketplaces don't update automatically unless you turn that on
+in `/plugin`, under Marketplaces.
+
+If you used `install-skill` before, remove the copied skill
+(`rm -r ~/.claude/skills/thread-handoff`) and run
+`agent-thread-tools install-skill --agent claude --no-auto-handoff`, so the skill and
+hooks aren't installed twice. Cloud sessions started on claude.ai/code don't load
+plugins.
+
 ## Automatic handoff
 
 ```bash
 agent-thread-tools install-skill --agent claude --auto-handoff --at 150k
 ```
 
-This adds two hooks to `~/.claude/settings.json`, next to any hooks you already
+Without the plugin, this adds two hooks to `~/.claude/settings.json`, next to any hooks you already
 have (a backup is saved as `settings.json.agent-thread-tools.bak`):
 
 - `Stop` runs `agent-thread-tools hook claude-stop --at 150k` after each turn. It

@@ -1,0 +1,15 @@
+{
+  "name": "agent-thread-tools",
+  "description": "Session health, handoffs, and archives for Claude Code.",
+  "owner": {
+    "name": "Rich Olson",
+    "url": "https://github.com/zenzig"
+  },
+  "plugins": [
+    {
+      "name": "agent-thread-tools",
+      "source": "./",
+      "description": "Hand off long Claude Code sessions before they grow large, automatically or with /thread-handoff."
+    }
+  ]
+}

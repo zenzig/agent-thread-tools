@@ -213,6 +213,12 @@ function installClaudeSkill() {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.rmSync(target, { recursive: true, force: true });
     fs.cpSync(source, target, { recursive: true });
+    // Outside a plugin, Claude Code does not fill in ${CLAUDE_PLUGIN_ROOT}; use this package.
+    const skillFile = path.join(target, "SKILL.md");
+    fs.writeFileSync(
+      skillFile,
+      fs.readFileSync(skillFile, "utf8").split("${CLAUDE_PLUGIN_ROOT}").join(ROOT)
+    );
     process.stdout.write(
       `Installed thread-handoff to ${target}\n\n` +
         "Invoke it in Claude Code with: /thread-handoff\n" +

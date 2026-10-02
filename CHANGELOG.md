@@ -10,6 +10,12 @@
   `AGENT_THREAD_AUTO_HANDOFF=off` skips them for one session.
 - Add `agent-thread-tools hook claude-stop|claude-precompact`, the commands those
   hooks run.
+- Package the project as a Claude Code plugin, with the repository as its own
+  marketplace (`/plugin marketplace add zenzig/agent-thread-tools`). The plugin
+  installs `/thread-handoff` and the automatic-handoff hooks and runs its bundled
+  Python tools; `AGENT_THREAD_AUTO_HANDOFF_AT` sets its threshold.
+- The `/thread-handoff` skill runs the tools that ship with it, so the skill and the
+  tools always match.
 
 ## 2.0.0 - 2026-09-26
 

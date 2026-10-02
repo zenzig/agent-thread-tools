@@ -67,7 +67,17 @@ project forward.
 
 ## 🚀 Quick start (Claude Code)
 
-You need Node.js 18+ and Python 3 on your `PATH`.
+**As a Claude Code plugin** (needs Python 3). In any Claude Code session:
+
+```text
+/plugin marketplace add zenzig/agent-thread-tools
+/plugin install agent-thread-tools@agent-thread-tools
+```
+
+That adds `/thread-handoff` and turns on [automatic handoff](#automatic-handoff).
+
+**As a command-line tool** (needs Node.js 18+ and Python 3) for health reports,
+archives, and recovery:
 
 ```bash
 npm install -g agent-thread-tools
@@ -120,27 +130,18 @@ run on Anthropic's machines, where the tool is not installed.
 
 ### Automatic handoff
 
-Turn it on once, and Claude hands off by itself when a session gets large:
+After each turn, a hook checks the session's context size. The first time it passes
+the threshold (default `150k` tokens, or a share such as `60%`), Claude runs
+`/thread-handoff` and tells you it's saved; you run `/clear` and continue in a small,
+fresh session. It asks once per session. This saves tokens because every request
+resends the whole conversation, so rotating early keeps every later request small.
+A second hook saves a redacted draft to `.reference/handoffs/` before any compaction.
 
-```bash
-agent-thread-tools install-skill --agent claude --auto-handoff --at 150k
-```
-
-After each turn, a Claude Code hook checks the session's context size. The first
-time it passes the threshold (`--at`, default `150k`; `60%` of the context window
-also works), Claude runs `/thread-handoff` and tells you it's saved. You run `/clear`
-and continue in a fresh, small session. It asks once per session, so you can keep
-going if you prefer.
-
-This saves tokens because every request resends the whole conversation: rotating at
-150k instead of letting a session run toward auto-compaction keeps every later
-request small. The handoff itself costs a few thousand tokens to write.
-
-A second hook runs just before any compaction and saves a redacted draft handoff to
-`.reference/handoffs/`, so an unplanned compaction still leaves a record. Turn both
-off with `--no-auto-handoff`, or for one session with `AGENT_THREAD_AUTO_HANDOFF=off`.
-The hooks run where the session runs; there have been reports of Claude Code hooks
-not firing in the desktop app, so check that it works there before relying on it.
+The plugin turns this on; set its threshold with `AGENT_THREAD_AUTO_HANDOFF_AT`.
+Without the plugin, run `agent-thread-tools install-skill --agent claude
+--auto-handoff --at 150k` (and `--no-auto-handoff` to remove it). Use one or the
+other, not both. `AGENT_THREAD_AUTO_HANDOFF=off` skips it for a session. Hooks may not
+fire in the desktop app (a reported Claude Code issue), so check before relying on it.
 
 ## 📦 What a handoff leaves behind
 

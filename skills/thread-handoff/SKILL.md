@@ -11,6 +11,17 @@ Move durable project memory out of the transcript and into files that every new
 session loads automatically, so the next session (any model) starts effective
 without re-explaining the project or replaying history.
 
+## Running the tool
+
+The commands below are written as `agent-thread-tools <command> <arguments>`. Run
+each one through the copy that ships with this skill, so its version matches:
+
+`python3 "${CLAUDE_PLUGIN_ROOT}/tools/agent-thread-<command>.py" <arguments>`
+
+For example, `agent-thread-tools health check F` becomes
+`python3 "${CLAUDE_PLUGIN_ROOT}/tools/agent-thread-health.py" check F`. If that file
+does not exist, use the installed `agent-thread-tools` command instead.
+
 ## Locate the session
 
 This session's transcript is `~/.claude/projects/*/${CLAUDE_SESSION_ID}.jsonl`.

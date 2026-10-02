@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -38,13 +39,22 @@ def main(argv: list[str] | None = None) -> int:
     stop = sub.add_parser("claude-stop", help="Stop hook: ask for a handoff past the threshold")
     stop.add_argument(
         "--at",
-        default=DEFAULT_THRESHOLD,
-        help=f"context size that triggers a handoff, e.g. 150k or 60%% (default {DEFAULT_THRESHOLD})",
+        default=None,
+        help="context size that triggers a handoff, e.g. 150k or 60%% (default: "
+        f"$AGENT_THREAD_AUTO_HANDOFF_AT, else {DEFAULT_THRESHOLD})",
     )
     sub.add_parser("claude-precompact", help="PreCompact hook: save a handoff draft first")
     args = parser.parse_args(argv)
     if args.command == "claude-stop":
-        parse_threshold(args.at)  # reject a bad threshold at install time, loudly
+        if args.at is None:
+            # The plugin's hook has no --at; users set the threshold in their environment.
+            args.at = os.environ.get("AGENT_THREAD_AUTO_HANDOFF_AT") or DEFAULT_THRESHOLD
+            try:
+                parse_threshold(args.at)
+            except ValueError:
+                args.at = DEFAULT_THRESHOLD
+        else:
+            parse_threshold(args.at)  # reject a bad threshold at install time, loudly
     event = read_event()
     try:
         if args.command == "claude-stop":

@@ -1,0 +1,15 @@
+{
+  "name": "agent-thread-tools",
+  "displayName": "Agent Thread Tools",
+  "version": "2.1.0",
+  "description": "Hand off long Claude Code sessions before they grow large: /thread-handoff writes a reviewed handoff the next session loads, and an automatic hook asks for one once the context passes a threshold.",
+  "author": {
+    "name": "Rich Olson",
+    "url": "https://github.com/zenzig"
+  },
+  "homepage": "https://github.com/zenzig/agent-thread-tools#readme",
+  "repository": "https://github.com/zenzig/agent-thread-tools",
+  "license": "MIT",
+  "keywords": ["handoff", "context", "session-health", "compaction", "memory"],
+  "skills": ["./skills/thread-handoff"]
+}
