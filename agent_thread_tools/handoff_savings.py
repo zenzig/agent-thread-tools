@@ -23,6 +23,18 @@ from agent_thread_tools.handoff_markers import session_identity
 from agent_thread_tools.sessionlib import iter_jsonl, session_agent
 
 COMPACTION_SHARE = 0.83
+CORRECTION_MIN = 0.7
+CORRECTION_QUESTION = {
+    "type": "noul",
+    "instructions": (
+        "Is the user correcting the assistant because it lacked or forgot context from "
+        "earlier work: a decision, preference, project state, or fact the user had already given?"
+    ),
+    "criteria": {
+        "true": "The user points out something the assistant should already have known from earlier work.",
+        "false": "A new request, new information, feedback on new results, or an ordinary instruction.",
+    },
+}
 WEIGHTS = {"cache_read": 0.1, "cache_write": 1.25, "fresh": 1.0, "output": 5.0}
 
 
@@ -212,6 +224,7 @@ def project_savings(markers: list[dict[str, Any]], session_paths: list[Path]) ->
             if start[:19] <= item["timestamp"][:19] <= marker["created_at"][:19]
         ]
         overhead_weighted = weighted(overhead) + WEIGHTS["cache_write"] * replacement["requests"][0]["cache_write"]
+        corrections = count_corrections(replacement["path"], stop)
         rows.append(
             {
                 "project": project,
@@ -229,15 +242,47 @@ def project_savings(markers: list[dict[str, Any]], session_paths: list[Path]) ->
                 # Context resent on later requests is almost all cache reads.
                 "saved_weighted": round(WEIGHTS["cache_read"] * saved_raw),
                 "overhead_weighted": round(overhead_weighted),
+                "next_session_prompts": corrections[0],
+                "next_session_corrections": corrections[1],
             }
         )
     return rows
+
+
+def count_corrections(session_file: Path, stop: str | None) -> tuple[int | None, int | None]:
+    """Prompts in the session after a handoff, and how many Jev reads as context corrections.
+
+    (None, None) when Jev is not configured or fails.
+    """
+    from agent_thread_tools import jev
+    from agent_thread_tools.handoff_audit import session_items
+
+    if not jev.available():
+        return None, None
+    prompts = [
+        item for item in session_items(session_file)
+        if item["role"] == "user" and (not stop or item["timestamp"] < stop)
+    ]
+    if not prompts:
+        return 0, 0
+    try:
+        answers = jev.decide_many(
+            [({"user_prompt": item["text"][:1500]}, {"correction": CORRECTION_QUESTION}) for item in prompts],
+            workers=16,
+        )
+    except Exception:
+        return None, None
+    flagged = sum(1 for answer in answers if float(answer["answers"]["correction"]["noul"]) >= CORRECTION_MIN)
+    return len(prompts), flagged
 
 
 def savings_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
     keys = ("saved_tokens", "overhead_tokens", "net_tokens", "saved_weighted", "overhead_weighted")
     summary = {key: sum(row[key] for row in rows) for key in keys}
     summary["handoffs"] = len(rows)
+    judged = [row for row in rows if row.get("next_session_prompts") is not None]
+    summary["next_session_prompts"] = sum(row["next_session_prompts"] for row in judged) if judged else None
+    summary["next_session_corrections"] = sum(row["next_session_corrections"] for row in judged) if judged else None
     summary["net_weighted"] = summary["saved_weighted"] - summary["overhead_weighted"]
     return {"report_type": "handoff_savings", "summary": summary, "handoffs": rows}
 
@@ -261,8 +306,13 @@ def format_savings(report: dict[str, Any]) -> str:
             f"{summary['net_weighted']:,} (saved {summary['saved_weighted']:,}, "
             f"overhead {summary['overhead_weighted']:,})"
         ),
-        "",
     ]
+    if summary.get("next_session_prompts") is not None:
+        lines.append(
+            "Possible context corrections in the sessions after handoffs (Jev): "
+            f"{summary['next_session_corrections']} of {summary['next_session_prompts']} prompts"
+        )
+    lines.append("")
     for row in report["handoffs"]:
         when = row["handoff_at"][:16].replace("T", " ")
         lines.append(
@@ -270,6 +320,11 @@ def format_savings(report: dict[str, Any]) -> str:
             f"{row['replacement_start_context']:,} context; {row['requests_compared']} requests "
             f"compared; saved {row['saved_tokens']:,}, overhead {row['overhead_tokens']:,} "
             f"({row['overhead_requests']} requests)"
+            + (
+                f"; corrections {row['next_session_corrections']}/{row['next_session_prompts']}"
+                if row.get("next_session_prompts") is not None
+                else ""
+            )
         )
     lines += [
         "",

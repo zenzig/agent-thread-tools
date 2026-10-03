@@ -51,12 +51,16 @@ def build_handoff_summary(
         "sensitive_values_redacted": 0,
         "truncated_items": 0,
     }
-    durable_context = durable_context_items(
-        session_file,
-        max_items=max_items,
-        max_text_chars=max_text_chars,
-        redactions=redactions,
+    durable_context, selection = jev_ranked_items(
+        session_file, max_items=max_items, max_text_chars=max_text_chars, redactions=redactions
     )
+    if durable_context is None:
+        durable_context = durable_context_items(
+            session_file,
+            max_items=max_items,
+            max_text_chars=max_text_chars,
+            redactions=redactions,
+        )
     metrics = health["metrics"]
     return {
         "summary_type": "handoff_summary",
@@ -82,8 +86,56 @@ def build_handoff_summary(
             "archive_recommended": health["handoff_readiness"]["visual_archive"],
         },
         "durable_context": durable_context,
+        "durable_context_selection": selection,
         "redactions": redactions,
     }
+
+
+JEV_CANDIDATE_LIMIT = 300
+
+
+def jev_ranked_items(
+    session_file: Path,
+    *,
+    max_items: int,
+    max_text_chars: int,
+    redactions: dict[str, int],
+) -> tuple[list[dict[str, str]] | None, str]:
+    """The items Jev rates most needed by a fresh session, in time order.
+
+    Returns (None, "most recent") when Jev is not configured or fails, so the
+    summary falls back to the latest items.
+    """
+    from agent_thread_tools import jev
+    from agent_thread_tools.handoff_audit import NEEDED, session_items
+
+    if max_items <= 0 or not jev.available():
+        return None, "most recent"
+    candidates = []
+    for item in session_items(session_file)[-JEV_CANDIDATE_LIMIT:]:
+        redacted_text, sensitive_count = redact_sensitive_text(item["text"])
+        text = normalize_text(redacted_text)
+        if not text:
+            continue
+        redactions["sensitive_values_redacted"] += sensitive_count
+        if len(text) > max_text_chars:
+            text = text[: max_text_chars - 3].rstrip() + "..."
+            redactions["truncated_items"] += 1
+        candidates.append({"timestamp": item["timestamp"], "role": item["role"], "text": text})
+    if len(candidates) <= max_items:
+        return candidates, "all"
+    try:
+        answers = jev.decide_many(
+            [({"item_role": item["role"], "item": item["text"]}, {"needed": NEEDED}) for item in candidates],
+            workers=16,
+            timeout=15,
+        )
+        scores = [float(answer["answers"]["needed"]["noul"]) for answer in answers]
+    except Exception:
+        return None, "most recent"
+    # Highest need first; among equals, the more recent item wins.
+    ranked = sorted(range(len(candidates)), key=lambda index: (-scores[index], -index))[:max_items]
+    return [candidates[index] for index in sorted(ranked)], "ranked by Jev"
 
 
 def durable_context_items(
@@ -216,7 +268,8 @@ def format_handoff_summary(summary: dict[str, Any]) -> str:
             f"Inside compacted records: {format_count(visuals['in_compacted_records'])}",
             f"Archive recommended: {visuals['archive_recommended']}",
             "",
-            "Durable Context",
+            "Durable Context"
+            + (" (ranked by Jev)" if summary.get("durable_context_selection") == "ranked by Jev" else ""),
         ]
     )
     if summary["durable_context"]:

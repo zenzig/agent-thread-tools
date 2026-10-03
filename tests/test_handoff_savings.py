@@ -98,3 +98,26 @@ def test_codex_sessions_use_token_count_events(tmp_path: Path) -> None:
     [request] = session_requests(path)
     assert request["context"] == 120_000
     assert request["cache_read"] == 100_000 and request["fresh"] == 20_000
+
+
+def test_corrections_are_counted_when_jev_is_available(tmp_path, monkeypatch) -> None:
+    from agent_thread_tools import handoff_savings, jev
+
+    session = tmp_path / "new.jsonl"
+    records = [
+        {"type": "user", "sessionId": "new", "cwd": "/work/project", "timestamp": "2026-10-01T12:00:00Z", "message": {"role": "user", "content": text}}
+        for text in ("Add the login page.", "We already decided to use Postgres, remember?")
+    ]
+    session.write_text("".join(json.dumps(item) + "\n" for item in records), encoding="utf-8")
+    monkeypatch.setattr(jev, "available", lambda: True)
+    monkeypatch.setattr(
+        jev,
+        "decide_many",
+        lambda requests, **_: [
+            {"answers": {"correction": {"noul": 0.9 if "already decided" in state["user_prompt"] else 0.1}}}
+            for state, _ in requests
+        ],
+    )
+    assert handoff_savings.count_corrections(session, None) == (2, 1)
+    monkeypatch.setattr(jev, "available", lambda: False)
+    assert handoff_savings.count_corrections(session, None) == (None, None)

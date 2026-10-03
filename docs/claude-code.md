@@ -146,6 +146,13 @@ only; each check costs a fraction of a cent.
   `agent-thread-tools handoff-audit <session-file> <handoff-file>` after writing the
   handoff. It checks each prompt you typed and each turn's closing message, and lists
   the ones a fresh session would need but the handoff does not state.
+- **What the summary keeps.** `handoff-summary`, which the skill uses as a draft and
+  the pre-compaction hook saves, keeps the 8 items Jev rates most needed from across
+  the whole session, instead of the last 8 messages.
+- **Whether handoffs cost quality.** `health savings` counts the prompts in each
+  session after a handoff that Jev reads as context corrections ("we already decided
+  that"). Corrections about something said earlier in the same session can count
+  too, so treat the number as an upper bound.
 
 Save the key where only your account can read it:
 

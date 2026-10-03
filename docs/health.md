@@ -325,3 +325,8 @@ overhead. A price-weighted figure counts cached input at a tenth of uncached inp
 in uncached-token equivalents. It is an estimate: it assumes the old session would
 have done the same work in the same number of requests.
 
+With an OpenRouter key (see [Claude Code](claude-code.md#jev-optional)), the report also
+counts possible context corrections in each session after a handoff: prompts Jev
+reads as the user pointing out something the session should have known. It is an
+upper bound, since corrections about earlier parts of the same session can count.
+

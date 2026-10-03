@@ -629,3 +629,29 @@ def test_durable_context_keeps_text_around_pem_and_normalizes(tmp_path: Path) ->
     assert "Rotate it after deploy." in context
     assert "QUJDREVG" not in context
     assert payload["redactions"]["sensitive_values_redacted"] == 1
+
+
+def test_jev_ranks_durable_context_across_the_whole_session(tmp_path, monkeypatch) -> None:
+    import json as _json
+
+    from agent_thread_tools import handoff_summary, jev
+
+    session = tmp_path / "s.jsonl"
+    texts = ["Decision: use Postgres."] + [f"chatter {index}" for index in range(10)]
+    records = [
+        {"type": "user", "sessionId": "s", "cwd": "/work", "timestamp": f"2026-10-01T10:{index:02d}:00Z", "message": {"role": "user", "content": text}}
+        for index, text in enumerate(texts)
+    ]
+    session.write_text("".join(_json.dumps(item) + "\n" for item in records), encoding="utf-8")
+    monkeypatch.setattr(jev, "available", lambda: True)
+    monkeypatch.setattr(
+        jev,
+        "decide_many",
+        lambda requests, **_: [
+            {"answers": {"needed": {"noul": 0.95 if "Decision" in state["item"] else 0.1}}} for state, _ in requests
+        ],
+    )
+    items, selection = handoff_summary.jev_ranked_items(session, max_items=3, max_text_chars=500, redactions={"sensitive_values_redacted": 0, "truncated_items": 0})
+    assert selection == "ranked by Jev"
+    assert items[0]["text"] == "Decision: use Postgres."  # the early decision survives
+    assert [item["text"] for item in items[1:]] == ["chatter 8", "chatter 9"]  # ties go to the most recent

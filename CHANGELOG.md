@@ -21,7 +21,10 @@
   OpenRouter key is set): the auto-handoff hook waits for a natural break past the
   threshold (or hands off at 1.5 times it), and the new `handoff-audit` command lists
   items a fresh session would need that the handoff leaves out. `/thread-handoff`
-  runs the audit after writing a handoff.
+  runs the audit after writing a handoff. `handoff-summary` keeps the items Jev rates
+  most needed across the whole session instead of the last 8 messages, and
+  `health savings` counts possible context corrections in each session after a
+  handoff.
 - Add `health savings`, which estimates the tokens each recorded handoff saved
   (counterfactual: the old session's final size carried forward until it would
   have compacted), minus the handoff's own overhead, raw and price-weighted.
