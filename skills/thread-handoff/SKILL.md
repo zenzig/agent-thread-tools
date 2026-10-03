@@ -57,6 +57,10 @@ hidden from the project repository, never pushed. Step 1 creates it when missing
 6. Write the handoff. Put stable, long-lived facts (architecture, conventions,
    commands) into the project `CLAUDE.md` instead, kept short; put per-slice state in
    the handoff.
+   Then check it: `agent-thread-tools handoff-audit <session-file> <handoff path>`. It
+   lists items from this session that a fresh session would need but the handoff does
+   not state (or says it was skipped when no OpenRouter key is set). For each listed
+   item, check whether it still applies, and add it to the handoff if it does.
 7. Wire it in: keep exactly one line in `CLAUDE.local.md` (create it if missing):
    `Latest handoff: @<handoff path>` and `Reference index: @.reference/INDEX.md`.
    Replace the previous line; never accumulate old handoffs there.

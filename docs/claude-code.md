@@ -132,6 +132,33 @@ the change pick up the hooks; restart a running session to use them.
 The hooks run where the session runs. There have been reports of Claude Code hooks
 not firing in the desktop app, so check that it works there before relying on it.
 
+## Jev (optional)
+
+With an OpenRouter API key, the tools use Jev, TypeSafe's decision model, for two
+judgments. Jev answers yes/no questions with probabilities and is billed on input
+only; each check costs a fraction of a cent.
+
+- **When to hand off.** Past the threshold, the `Stop` hook asks Jev whether the turn
+  that just ended is a natural break: work finished and recorded, nothing running. It
+  hands off at the first confident yes, or at 1.5 times the threshold regardless, so
+  the handoff records finished work instead of an in-between state.
+- **What the handoff is missing.** `/thread-handoff` runs
+  `agent-thread-tools handoff-audit <session-file> <handoff-file>` after writing the
+  handoff. It checks each prompt you typed and each turn's closing message, and lists
+  the ones a fresh session would need but the handoff does not state.
+
+Save the key where only your account can read it:
+
+```bash
+mkdir -p ~/.config/openrouter && read -rsp "OpenRouter key: " k && printf '%s' "$k" > ~/.config/openrouter/key && chmod 600 ~/.config/openrouter/key
+```
+
+`OPENROUTER_API_KEY` also works, and `AGENT_THREAD_JEV=off` turns Jev off. Without a
+key, the hook hands off at the threshold and the audit is skipped. Jev is sent the
+redacted text of the last reply (timing) or of the session's prompts and closing
+messages with the handoff (audit), through OpenRouter's `api/alpha/decisions`
+endpoint; nothing else leaves the machine.
+
 ## Archive and recovery
 
 Old sessions can move to external storage with `session-archive --agent claude`.

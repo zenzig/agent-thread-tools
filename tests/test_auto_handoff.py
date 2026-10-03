@@ -205,3 +205,46 @@ def test_waits_for_background_work_then_asks(tmp_path: Path) -> None:
     running = event(transcript, background_tasks=[{"id": "gate", "status": "running"}])
     assert stop_decision(running, "300k") is None
     assert stop_decision(event(transcript, background_tasks=[]), "300k") is not None
+
+
+def fake_jev(monkeypatch: pytest.MonkeyPatch, probability: float | None) -> list[dict]:
+    from agent_thread_tools import jev
+
+    calls: list[dict] = []
+
+    def decide(state, questions, timeout=20.0):
+        calls.append(state)
+        if probability is None:
+            raise jev.JevError("down")
+        return {"answers": {"natural_break": {"type": "noul", "noul": probability}}}
+
+    monkeypatch.setattr(jev, "available", lambda: True)
+    monkeypatch.setattr(jev, "decide", decide)
+    return calls
+
+
+def test_jev_holds_the_handoff_while_work_is_mid_way(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = fake_jev(monkeypatch, 0.07)
+    transcript = write(tmp_path / "s1.jsonl", [reply(320_000)])
+    mid_task = event(transcript, last_assistant_message="Unit suite green. The live gate is still running.")
+    assert stop_decision(mid_task, "300k") is None
+    assert calls[0]["last_reply"].startswith("Unit suite green")
+    assert not auto_handoff.state_file("s1").exists()  # it will ask again next turn
+
+
+def test_jev_natural_break_asks_for_the_handoff(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_jev(monkeypatch, 0.84)
+    transcript = write(tmp_path / "s1.jsonl", [reply(320_000)])
+    decision = stop_decision(event(transcript, last_assistant_message="U6 shipped as build 746c10e5."), "300k")
+    assert decision is not None and "natural break" in decision["reason"]
+
+
+def test_without_jev_or_past_the_hard_limit_it_asks_now(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_jev(monkeypatch, None)  # Jev fails: fall back to asking at the threshold
+    transcript = write(tmp_path / "s1.jsonl", [reply(320_000)])
+    assert stop_decision(event(transcript, last_assistant_message="still testing"), "300k") is not None
+
+    calls = fake_jev(monkeypatch, 0.05)
+    transcript = write(tmp_path / "s2.jsonl", [reply(460_000)])
+    assert stop_decision(event(transcript, session_id="s2", last_assistant_message="still testing"), "300k") is not None
+    assert calls == []  # past 1.5x the threshold Jev is not consulted

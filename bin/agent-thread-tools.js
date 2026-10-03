@@ -18,6 +18,7 @@ const PYTHON_TOOLS = new Map([
   ["recover", "agent-thread-recover.py"],
   ["reference", "agent-thread-reference.py"],
   ["hook", "agent-thread-hook.py"],
+  ["handoff-audit", "agent-thread-handoff-audit.py"],
 ]);
 
 const HOOK_COMMAND = "agent-thread-tools hook";
@@ -29,6 +30,7 @@ Usage:
   agent-thread-tools health [args...]
   agent-thread-tools handoff-summary [args...]
   agent-thread-tools handoff-marker [args...]
+  agent-thread-tools handoff-audit <session-file> <handoff-file>
   agent-thread-tools session-archive [args...]
   agent-thread-tools visual-archive [args...]
   agent-thread-tools recover [args...]
