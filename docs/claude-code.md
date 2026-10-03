@@ -140,11 +140,15 @@ only; each check costs a fraction of a cent.
 
 - **When to hand off.** Past the threshold, the `Stop` hook asks Jev whether the turn
   that just ended is a natural break: work finished and recorded, nothing running. It
-  hands off at the first confident yes, or at 1.5 times the threshold regardless, so
-  the handoff records finished work instead of an in-between state.
+  averages two scores and hands off at the first score of 0.6 or more, or at 1.5 times
+  the threshold regardless, so the handoff records finished work instead of an
+  in-between state. Each decision is logged to
+  `~/.claude/thread-tools/auto-handoff/decisions.jsonl`, and `health savings` shows how
+  many turns Jev held before each handoff.
 - **What the handoff is missing.** `/thread-handoff` runs
   `agent-thread-tools handoff-audit <session-file> <handoff-file>` after writing the
-  handoff. It checks each prompt you typed and each turn's closing message, and lists
+  handoff. It checks each prompt you typed, each turn's closing message, and Claude's
+  longer messages from the middle of a turn, and lists
   the ones a fresh session would need but the handoff does not state.
 - **What the summary keeps.** `handoff-summary`, which the skill uses as a draft and
   the pre-compaction hook saves, keeps the 8 items Jev rates most needed from across

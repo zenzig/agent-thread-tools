@@ -230,6 +230,9 @@ def test_jev_holds_the_handoff_while_work_is_mid_way(tmp_path: Path, monkeypatch
     assert stop_decision(mid_task, "300k") is None
     assert calls[0]["last_reply"].startswith("Unit suite green")
     assert not auto_handoff.state_file("s1").exists()  # it will ask again next turn
+    assert len(calls) == auto_handoff.NATURAL_BREAK_SAMPLES  # scores are averaged
+    [logged] = [json.loads(line) for line in auto_handoff.decisions_file().read_text().splitlines()]
+    assert logged["decision"] == "held" and logged["natural_break"] == 0.07
 
 
 def test_jev_natural_break_asks_for_the_handoff(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

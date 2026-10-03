@@ -20,7 +20,8 @@ from typing import Any
 DEFAULT_THRESHOLD = "250k"
 # With Jev available, hand off at the first natural break past the threshold, or at
 # 1.5 times the threshold regardless.
-NATURAL_BREAK_MIN = 0.75
+NATURAL_BREAK_MIN = 0.6
+NATURAL_BREAK_SAMPLES = 2  # Jev's score for one reply varies; averaging two steadies it near the cut-off
 HARD_LIMIT_FACTOR = 1.5
 NATURAL_BREAK_QUESTION = {
     "type": "noul",
@@ -95,6 +96,33 @@ def context_window(tokens: int) -> int:
     return 1_000_000 if tokens > 200_000 else 200_000
 
 
+def decisions_file() -> Path:
+    return Path.home() / ".claude" / "thread-tools" / "auto-handoff" / "decisions.jsonl"
+
+
+def log_decision(session_id: str, tokens: int, limit: int, natural_break: float | None, decision: str) -> None:
+    """One line per turn past the threshold, so holds can be reviewed later."""
+    try:
+        target = decisions_file()
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("a", encoding="utf-8") as handle:
+            handle.write(
+                json.dumps(
+                    {
+                        "at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                        "session_id": session_id,
+                        "context_tokens": tokens,
+                        "threshold_tokens": limit,
+                        "natural_break": natural_break,
+                        "decision": decision,
+                    }
+                )
+                + "\n"
+            )
+    except OSError:
+        pass
+
+
 def state_file(session_id: str) -> Path:
     safe = re.sub(r"[^A-Za-z0-9_.-]", "_", session_id) or "unknown"
     return Path.home() / ".claude" / "thread-tools" / "auto-handoff" / f"{safe}.json"
@@ -135,7 +163,12 @@ def stop_decision(event: dict[str, Any], threshold: str) -> dict[str, Any] | Non
     if tokens < limit * HARD_LIMIT_FACTOR:
         natural_break = natural_break_probability(event)
         if natural_break is not None and natural_break < NATURAL_BREAK_MIN:
+            log_decision(session_id, tokens, limit, natural_break, "held")
             return None  # mid-task; check again after the next turn
+        decision = "asked" if natural_break is not None else "asked-without-jev"
+    else:
+        decision = "asked-at-hard-limit"
+    log_decision(session_id, tokens, limit, natural_break, decision)
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(
         json.dumps(
@@ -178,8 +211,11 @@ def natural_break_probability(event: dict[str, Any]) -> float | None:
         return None
     state = {"last_reply": reply[-3000:], "background_tasks_running": len(event.get("background_tasks") or [])}
     try:
-        answer = jev.decide(state, {"natural_break": NATURAL_BREAK_QUESTION}, timeout=8)
-        return float(answer["answers"]["natural_break"]["noul"])
+        answers = jev.decide_many(
+            [(state, {"natural_break": NATURAL_BREAK_QUESTION})] * NATURAL_BREAK_SAMPLES, timeout=8
+        )
+        scores = [float(answer["answers"]["natural_break"]["noul"]) for answer in answers]
+        return round(sum(scores) / len(scores), 3)
     except Exception:
         return None
 

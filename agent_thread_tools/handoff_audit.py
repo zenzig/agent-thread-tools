@@ -16,6 +16,8 @@ from agent_thread_tools import jev
 from agent_thread_tools.sessionlib import iter_jsonl, session_agent
 
 NEEDED_MIN = 0.7
+SUBSTANTIAL_CHARS = 120  # mid-turn assistant messages at least this long are checked too
+ITEM_LIMIT = 300
 REFLECTED_MAX = 0.3
 SKIPPED_PREFIXES = ("<", "Stop hook", "Base directory", "[Request")
 
@@ -32,7 +34,12 @@ REFLECTED = jev.noul(
 
 
 def session_items(path: Path) -> list[dict[str, str]]:
-    """User prompts and closing assistant messages, up to where the handoff began."""
+    """User prompts and assistant messages worth keeping, up to where the handoff began.
+
+    Besides each turn's closing message, substantial messages from the middle of a
+    turn count: in a long autonomous turn ("proceed"), that is where the work is
+    reported.
+    """
     if session_agent(path) == "codex":
         return _codex_items(path)
     items: list[dict[str, str]] = []
@@ -50,6 +57,8 @@ def session_items(path: Path) -> list[dict[str, str]]:
                 break
             for block in content:
                 if isinstance(block, dict) and block.get("type") == "text" and block["text"].strip():
+                    if last_text and len(last_text) >= SUBSTANTIAL_CHARS:
+                        items.append({"role": "assistant", "timestamp": last_time, "text": last_text})
                     last_text, last_time = block["text"], str(record.get("timestamp") or "")
         if record.get("type") != "user" or record.get("isMeta"):
             continue
@@ -64,7 +73,7 @@ def session_items(path: Path) -> list[dict[str, str]]:
         items.append({"role": "user", "timestamp": str(record.get("timestamp") or ""), "text": text})
     if last_text:
         items.append({"role": "assistant", "timestamp": last_time, "text": last_text})
-    return items
+    return items[-ITEM_LIMIT:]
 
 
 def _codex_items(path: Path) -> list[dict[str, str]]:

@@ -121,3 +121,13 @@ def test_corrections_are_counted_when_jev_is_available(tmp_path, monkeypatch) ->
     assert handoff_savings.count_corrections(session, None) == (2, 1)
     monkeypatch.setattr(jev, "available", lambda: False)
     assert handoff_savings.count_corrections(session, None) == (None, None)
+
+
+def test_logged_jev_holds_are_read_by_session(tmp_path, monkeypatch) -> None:
+    from agent_thread_tools import auto_handoff, handoff_savings
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    auto_handoff.log_decision("s1", 310_000, 300_000, 0.1, "held")
+    auto_handoff.log_decision("s1", 330_000, 300_000, 0.8, "asked")
+    grouped = handoff_savings.auto_handoff_decisions()
+    assert [entry["decision"] for entry in grouped["s1"]] == ["held", "asked"]

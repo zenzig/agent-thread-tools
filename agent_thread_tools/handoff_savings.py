@@ -162,8 +162,28 @@ def first_timestamp(requests: list[dict[str, Any]]) -> str:
     return requests[0]["timestamp"] if requests else ""
 
 
+def auto_handoff_decisions() -> dict[str, list[dict[str, Any]]]:
+    """The auto-handoff hook's logged decisions, grouped by session id."""
+    from agent_thread_tools.auto_handoff import decisions_file
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    try:
+        lines = decisions_file().read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return grouped
+    for line in lines:
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(entry, dict) and isinstance(entry.get("session_id"), str):
+            grouped.setdefault(entry["session_id"], []).append(entry)
+    return grouped
+
+
 def project_savings(markers: list[dict[str, Any]], session_paths: list[Path]) -> list[dict[str, Any]]:
     """One row per handoff whose source and replacement sessions are on this machine."""
+    decisions = auto_handoff_decisions()
     sessions = []
     for path in session_paths:
         try:
@@ -242,6 +262,11 @@ def project_savings(markers: list[dict[str, Any]], session_paths: list[Path]) ->
                 # Context resent on later requests is almost all cache reads.
                 "saved_weighted": round(WEIGHTS["cache_read"] * saved_raw),
                 "overhead_weighted": round(overhead_weighted),
+                "jev_holds": [
+                    {"context_tokens": entry.get("context_tokens"), "natural_break": entry.get("natural_break")}
+                    for entry in decisions.get(source["identity"]["session_id"], [])
+                    if entry.get("decision") == "held"
+                ],
                 "next_session_prompts": corrections[0],
                 "next_session_corrections": corrections[1],
             }
@@ -325,6 +350,7 @@ def format_savings(report: dict[str, Any]) -> str:
                 if row.get("next_session_prompts") is not None
                 else ""
             )
+            + (f"; Jev held {len(row['jev_holds'])} turn(s) first" if row.get("jev_holds") else "")
         )
     lines += [
         "",

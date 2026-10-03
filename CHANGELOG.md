@@ -22,7 +22,10 @@
   threshold (or hands off at 1.5 times it), and the new `handoff-audit` command lists
   items a fresh session would need that the handoff leaves out. `/thread-handoff`
   runs the audit after writing a handoff. `handoff-summary` keeps the items Jev rates
-  most needed across the whole session instead of the last 8 messages, and
+  most needed across the whole session instead of the last 8 messages. The hook
+  averages two Jev scores (cut-off 0.6) and logs each decision, `health savings`
+  shows how many turns Jev held before each handoff, the audit also checks longer
+  mid-turn messages, and
   `health savings` counts possible context corrections in each session after a
   handoff.
 - Add `health savings`, which estimates the tokens each recorded handoff saved
