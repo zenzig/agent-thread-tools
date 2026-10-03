@@ -94,7 +94,12 @@ def test_percent_threshold_uses_the_context_window(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     "fields",
-    [{"stop_hook_active": True}, {"stop_reason": "max_tokens"}, {"session_id": ""}],
+    [
+        {"stop_hook_active": True},
+        {"stop_reason": "max_tokens"},
+        {"session_id": ""},
+        {"background_tasks": [{"id": "bspliwozb", "status": "running"}]},
+    ],
 )
 def test_loops_unfinished_turns_and_bad_events_are_left_alone(tmp_path: Path, fields) -> None:
     transcript = write(tmp_path / "s1.jsonl", [reply(900_000)])
@@ -193,3 +198,10 @@ def test_installer_refuses_a_bad_threshold_and_unreadable_settings(isolated_home
     assert run_install(isolated_home, "--auto-handoff", "--at", "lots").returncode == 1
     assert run_install(isolated_home, "--auto-handoff").returncode == 1
     assert settings.read_text(encoding="utf-8") == "{not json"
+
+
+def test_waits_for_background_work_then_asks(tmp_path: Path) -> None:
+    transcript = write(tmp_path / "s1.jsonl", [reply(400_000)])
+    running = event(transcript, background_tasks=[{"id": "gate", "status": "running"}])
+    assert stop_decision(running, "300k") is None
+    assert stop_decision(event(transcript, background_tasks=[]), "300k") is not None

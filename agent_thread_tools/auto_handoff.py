@@ -84,6 +84,9 @@ def stop_decision(event: dict[str, Any], threshold: str) -> dict[str, Any] | Non
         return None
     if event.get("stop_hook_active"):
         return None
+    if event.get("background_tasks"):
+        # Work is still running; ask after it finishes so the handoff records the result.
+        return None
     stop_reason = event.get("stop_reason")
     if stop_reason not in (None, "", "end_turn"):
         return None

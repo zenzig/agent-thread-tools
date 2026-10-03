@@ -136,6 +136,7 @@ the threshold (default `250k` tokens, or a share such as `60%`), Claude runs
 fresh session. It asks once per session. This saves tokens because every request
 resends the whole conversation, so rotating early keeps every later request small.
 A second hook saves a redacted draft to `.reference/handoffs/` before any compaction.
+See what your handoffs saved with `agent-thread-tools health savings --agent claude`.
 
 The plugin turns this on; set its threshold with `AGENT_THREAD_AUTO_HANDOFF_AT`.
 Without the plugin, run `agent-thread-tools install-skill --agent claude

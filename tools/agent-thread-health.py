@@ -918,6 +918,23 @@ def tokens_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def savings_command(args: argparse.Namespace) -> int:
+    from agent_thread_tools.handoff_savings import format_savings, project_savings, savings_report
+
+    session_root = expand_path(args.session_root or default_session_root(args.agent))
+    if not session_root.is_dir():
+        die(f"session root does not exist: {session_root}")
+    rows = project_savings(handoff_markers_for_args(args), session_files(session_root))
+    if args.project:
+        rows = [row for row in rows if row["project"].rstrip("/") == args.project.rstrip("/")]
+    if args.since:
+        rows = [row for row in rows if row["handoff_at"] >= args.since]
+    report = savings_report(rows)
+    report["session_root"] = str(session_root)
+    print(json.dumps(report, indent=2) if args.json else format_savings(report))
+    return 0
+
+
 def remote_threshold_args(args: argparse.Namespace) -> list[str]:
     result: list[str] = []
     for name in (
@@ -1093,6 +1110,32 @@ def build_parser() -> argparse.ArgumentParser:
     add_report_args(tokens)
     add_local_scan_args(tokens)
     tokens.set_defaults(func=tokens_command)
+
+    savings = subparsers.add_parser(
+        "savings",
+        help="estimate the tokens each recorded handoff saved",
+    )
+    savings.add_argument(
+        "--session-root",
+        default=None,
+        help="session root to scan (default: the --agent session root)",
+    )
+    savings.add_argument(
+        "--agent",
+        choices=AGENTS,
+        default=None,
+        help="which agent's sessions to scan: codex (~/.codex/sessions) or "
+        "claude (~/.claude/projects); default: codex when present, else claude",
+    )
+    savings.add_argument("--project", help="only handoffs for this exact project path")
+    savings.add_argument("--since", help="only handoffs on or after this date, e.g. 2026-10-02")
+    savings.add_argument("--json", action="store_true", help="print machine-readable JSON")
+    savings.add_argument(
+        "--handoff-marker-file",
+        default=None,
+        help="local JSONL sidecar with completed handoff markers",
+    )
+    savings.set_defaults(func=savings_command, safe_test_mode=False)
 
     remote = subparsers.add_parser(
         "remote",

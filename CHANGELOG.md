@@ -16,6 +16,10 @@
   Python tools; `AGENT_THREAD_AUTO_HANDOFF_AT` sets its threshold.
 - The `/thread-handoff` skill runs the tools that ship with it, so the skill and the
   tools always match.
+- The auto-handoff hook waits while Claude Code background tasks are running.
+- Add `health savings`, which estimates the tokens each recorded handoff saved
+  (counterfactual: the old session's final size carried forward until it would
+  have compacted), minus the handoff's own overhead, raw and price-weighted.
 
 ## 2.0.0 - 2026-09-26
 

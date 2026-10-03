@@ -114,7 +114,8 @@ have (a backup is saved as `settings.json.agent-thread-tools.bak`):
 - `Stop` runs `agent-thread-tools hook claude-stop --at 250k` after each turn. It
   reads the context size of the latest reply from the end of the session file
   (Claude Code writes a reply to the file just after the hook runs, so this is the
-  size as of the previous reply). The
+  size as of the previous reply). While background tasks are still running, it
+  waits and asks after they finish, so the handoff records the finished result. The
   first time a finished turn is past the threshold, it asks Claude to run
   `/thread-handoff` and to tell you to run `/clear`. It asks once per session
   (recorded in `~/.claude/thread-tools/auto-handoff/`), never interrupts a turn that

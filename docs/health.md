@@ -305,3 +305,23 @@ agent-thread-tools health tokens --json
 Treat this as a session-scale report, not a billing ledger. Older Codex sessions
 may not contain `token_count` events, and missing token data is reported as
 `not recorded` rather than guessed as zero.
+
+## Handoff Savings
+
+Estimate the tokens your recorded handoffs saved:
+
+```bash
+agent-thread-tools health savings --agent claude
+agent-thread-tools health savings --agent claude --project /path/to/project --since 2026-10-01
+agent-thread-tools health savings --agent codex --json
+```
+
+Every request resends the session's whole context. For each request in the session
+that followed a handoff, the saving is the difference between what the old session
+would have sent (its final size plus the same growth) and what the new session sent.
+Counting stops where the old session would have reached auto-compaction, and at the
+new session's own handoff. The requests spent writing the handoff are subtracted as
+overhead. A price-weighted figure counts cached input at a tenth of uncached input,
+in uncached-token equivalents. It is an estimate: it assumes the old session would
+have done the same work in the same number of requests.
+
