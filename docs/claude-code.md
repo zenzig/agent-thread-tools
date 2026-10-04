@@ -159,13 +159,33 @@ only; each check costs a fraction of a cent.
   that"). Corrections about something said earlier in the same session can count
   too, so treat the number as an upper bound.
 
-Save the key where only your account can read it:
+### Setting the key
+
+Run this in a terminal on the machine where your sessions run (with the plugin only,
+use `npx agent-thread-tools jev-key set`):
 
 ```bash
-mkdir -p ~/.config/openrouter && read -rsp "OpenRouter key: " k && printf '%s' "$k" > ~/.config/openrouter/key && chmod 600 ~/.config/openrouter/key
+agent-thread-tools jev-key set
 ```
 
-`OPENROUTER_API_KEY` also works, and `AGENT_THREAD_JEV=off` turns Jev off. Without a
+It prompts for the key without showing it, makes one test call to check that
+OpenRouter accepts it, and saves it to `~/.config/agent-thread-tools/openrouter-key`,
+readable only by you (folder mode `700`, file mode `600`). Nothing is saved if the
+check fails. Type the key into that prompt yourself; don't paste it into a Claude
+chat, where it would be kept in the session transcript.
+
+| Command | What it does |
+| --- | --- |
+| `jev-key set` | Prompts for the key (hidden), checks it, and stores it |
+| `jev-key set --stdin` | Reads the key from standard input, for example from a password manager |
+| `jev-key status [--verify]` | Shows the masked key (`sk-or-v1…ac36`) and where it comes from; `--verify` makes one test call |
+| `jev-key remove` | Deletes the stored key |
+
+The key is never printed in full. The tools look for it in this order:
+`OPENROUTER_API_KEY`, then the stored file, then `~/.config/openrouter/key` (from
+earlier 2.1.0 builds). They refuse a key file that other users can read or that you
+don't own, and `jev-key status` says how to fix it. `AGENT_THREAD_JEV_KEY_FILE`
+stores the key somewhere else, and `AGENT_THREAD_JEV=off` turns Jev off. Without a
 key, the hook hands off at the threshold and the audit is skipped. Jev is sent the
 redacted text of the last reply (timing) or of the session's prompts and closing
 messages with the handoff (audit), through OpenRouter's `api/alpha/decisions`

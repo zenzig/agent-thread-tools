@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import stat
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -27,18 +28,74 @@ class JevError(RuntimeError):
 DISABLE_ENV = "AGENT_THREAD_JEV"
 
 
-def api_key() -> str:
-    """OPENROUTER_API_KEY, else the key file (default ~/.config/openrouter/key)."""
+def key_file() -> Path:
+    """Where `agent-thread-tools jev-key set` stores the key."""
+    override = os.environ.get("AGENT_THREAD_JEV_KEY_FILE")
+    if override:
+        return Path(override).expanduser()
+    return Path.home() / ".config" / "agent-thread-tools" / "openrouter-key"
+
+
+def legacy_key_file() -> Path:
+    return Path.home() / ".config" / "openrouter" / "key"
+
+
+def key_file_problem(path: Path) -> str:
+    """Why a key file must not be used, or "" when it is safe (owned by you, private)."""
+    if os.name == "nt":
+        return ""
+    info = path.stat()
+    if info.st_uid != os.getuid():
+        return f"{path} is not owned by you"
+    if stat.S_IMODE(info.st_mode) & 0o077:
+        return f"{path} can be read by other users; run: chmod 600 {path}"
+    return ""
+
+
+def key_source() -> tuple[str, str, str]:
+    """(key, where it came from, problem). The key is "" when none is usable."""
     key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if key:
-        return key
-    key_file = Path(
-        os.environ.get("AGENT_THREAD_JEV_KEY_FILE") or Path.home() / ".config" / "openrouter" / "key"
-    ).expanduser()
+        return key, "OPENROUTER_API_KEY", ""
+    candidates = [key_file()] if os.environ.get("AGENT_THREAD_JEV_KEY_FILE") else [key_file(), legacy_key_file()]
+    for path in candidates:
+        if not path.is_file():
+            continue
+        try:
+            problem = key_file_problem(path)
+            if problem:
+                return "", str(path), problem
+            return path.read_text(encoding="utf-8").strip(), str(path), ""
+        except OSError as exc:
+            return "", str(path), f"cannot read {path}: {exc.strerror}"
+    return "", "", ""
+
+
+def api_key() -> str:
+    """OPENROUTER_API_KEY, else the stored key file, but never a file others can read."""
+    return key_source()[0]
+
+
+def store_key(key: str) -> Path:
+    """Write the key so only the current user can read it, replacing any old one atomically."""
+    target = key_file()
+    target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if os.name != "nt":
+        os.chmod(target.parent, 0o700)
+    temporary = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
-        return key_file.read_text(encoding="utf-8").strip()
-    except OSError:
-        return ""
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(key)
+        os.replace(temporary, target)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return target
+
+
+def mask(key: str) -> str:
+    return f"{key[:8]}…{key[-4:]}" if len(key) > 16 else "…"
 
 
 def available() -> bool:
@@ -66,11 +123,13 @@ def decide(
     questions: dict[str, dict[str, Any]],
     *,
     timeout: float = 20.0,
+    key: str | None = None,
 ) -> dict[str, Any]:
     """Send one decision request; returns the full response (``answers``, ``usage``)."""
-    key = api_key()
-    if not key:
-        raise JevError("no OpenRouter key: set OPENROUTER_API_KEY or save it to ~/.config/openrouter/key")
+    if key is None:
+        key, _source, problem = key_source()
+        if not key:
+            raise JevError(problem or "no OpenRouter key: run `agent-thread-tools jev-key set`")
     body = json.dumps(
         {
             "model": os.environ.get("AGENT_THREAD_JEV_MODEL", DEFAULT_MODEL),

@@ -19,6 +19,7 @@ const PYTHON_TOOLS = new Map([
   ["reference", "agent-thread-reference.py"],
   ["hook", "agent-thread-hook.py"],
   ["handoff-audit", "agent-thread-handoff-audit.py"],
+  ["jev-key", "agent-thread-jev-key.py"],
 ]);
 
 const HOOK_COMMAND = "agent-thread-tools hook";
@@ -31,6 +32,7 @@ Usage:
   agent-thread-tools handoff-summary [args...]
   agent-thread-tools handoff-marker [args...]
   agent-thread-tools handoff-audit <session-file> <handoff-file>
+  agent-thread-tools jev-key set|status|remove
   agent-thread-tools session-archive [args...]
   agent-thread-tools visual-archive [args...]
   agent-thread-tools recover [args...]

@@ -77,6 +77,7 @@ def test_jev_key_comes_from_the_key_file(tmp_path: Path, monkeypatch: pytest.Mon
     monkeypatch.delenv("AGENT_THREAD_JEV", raising=False)
     key_file = tmp_path / "key"
     key_file.write_text("sk-or-test\n", encoding="utf-8")
+    key_file.chmod(0o600)
     monkeypatch.setenv("AGENT_THREAD_JEV_KEY_FILE", str(key_file))
     assert jev.api_key() == "sk-or-test" and jev.available()
     monkeypatch.setenv("AGENT_THREAD_JEV", "off")

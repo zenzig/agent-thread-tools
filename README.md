@@ -6,7 +6,7 @@
 
 **Keep one project going across many Claude Code and OpenAI Codex sessions, without replaying old transcripts.**
 
-Health checks · Handoffs · Reference archive · Screenshot archive · Remote health · Recovery
+Health checks · Handoffs · Automatic handoff · Token savings · Reference archive · Remote health · Recovery
 
 <a href="#-quick-start-claude-code"><img src="https://img.shields.io/badge/Quick_start-3_commands-2F81F7?style=for-the-badge" alt="Quick start"></a>
 <a href="#-why-not-just-let-claude-code-compact"><img src="https://img.shields.io/badge/Why-not_just_compact%3F-D97757?style=for-the-badge" alt="Why not just compact?"></a>
@@ -36,6 +36,11 @@ that the next session loads automatically.
   <tr>
     <td align="center" width="33%">🩺<br><strong>Health checks</strong><br><sub>Scores every session's size, compactions, context use, and screenshots, then says continue, monitor, or hand off.</sub></td>
     <td align="center" width="33%">🌉<br><strong>Handoffs</strong><br><sub><code>/thread-handoff</code> writes a short, reviewed brief that the next session loads on its own.</sub></td>
+    <td align="center" width="33%">⏱️<br><strong>Automatic handoff</strong><br><sub>A plugin hook starts the handoff once a session passes 250k tokens, before compaction does.</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">💰<br><strong>Token savings</strong><br><sub><code>health savings</code> estimates the tokens each handoff saved, and <code>/thread-health</code> shows it in chat.</sub></td>
+    <td align="center" width="33%">⚖️<br><strong>Jev checks</strong><br><sub>Optional: Jev picks a natural break for the handoff and lists anything it left out, for a fraction of a cent.</sub></td>
     <td align="center" width="33%">🗂️<br><strong>Reference archive</strong><br><sub>Handoffs, specs, and screenshots live in <code>.reference/</code>, a local git repository that is never pushed.</sub></td>
   </tr>
   <tr>
@@ -52,7 +57,8 @@ project forward.
 
 | | 🗜️ Compaction alone | 🌉 With a handoff |
 | --- | --- | --- |
-| **When** | ⚠️ When the context window is nearly full, often mid-task | ✅ At a point you choose, after health flags the risk |
+| **When** | ⚠️ When the context window is nearly full, often mid-task | ✅ Automatically at a threshold you set, at a natural break, or whenever you choose |
+| **Token cost** | ⚠️ Every request resends the whole long conversation until it compacts | ✅ Later requests start from a small, fresh session; `health savings` shows the difference |
 | **What is kept** | ⚠️ A summary the model writes for itself, usually unread | ✅ A handoff file you can read, edit, and correct |
 | **After several rounds** | ⚠️ Summaries of summaries; early decisions blur | ✅ Each handoff is dated and committed, so earlier states stay readable |
 | **Next session** | ⚠️ `/clear` or a new terminal starts with only `CLAUDE.md` and auto memory | ✅ Every new session also loads the latest handoff, through `CLAUDE.local.md` |
@@ -74,7 +80,10 @@ project forward.
 /plugin install agent-thread-tools@agent-thread-tools
 ```
 
-That adds `/thread-handoff` and `/thread-health` and turns on [automatic handoff](#automatic-handoff).
+That adds `/thread-handoff` (write a handoff now) and `/thread-health` (this
+session's size, distance to the next handoff, and tokens saved so far), and turns on
+[automatic handoff](#automatic-handoff). To use it in every project, install with
+`claude plugin install agent-thread-tools@agent-thread-tools --scope user`.
 
 **As a command-line tool** (needs Node.js 18+ and Python 3) for health reports,
 archives, and recovery:
@@ -107,7 +116,7 @@ it, the tools read Codex sessions.
 ### Where it works
 
 Run the commands yourself in any terminal, or stay inside Claude Code: type
-`/thread-handoff`, or ask Claude to run `agent-thread-tools health` for you. That
+`/thread-handoff` or `/thread-health`, or ask Claude to run a command for you. That
 works in every Claude Code app, as long as the session runs on a machine where
 agent-thread-tools and the skill are installed:
 
@@ -130,15 +139,26 @@ run on Anthropic's machines, where the tool is not installed.
 
 ### Automatic handoff
 
-After each turn, a hook checks the session's context size. The first time it passes
-the threshold (default `250k` tokens, or a share such as `60%`), Claude runs
+After each turn, a hook checks the session's context size. Once it passes the
+threshold (default `250k` tokens, or a share such as `60%`), Claude runs
 `/thread-handoff` and tells you it's saved; you run `/clear` and continue in a small,
-fresh session. It asks once per session. This saves tokens because every request
-resends the whole conversation, so rotating early keeps every later request small.
-A second hook saves a redacted draft to `.reference/handoffs/` before any compaction.
-See what your handoffs saved with `agent-thread-tools health savings --agent claude`.
-With an OpenRouter key, [Jev](docs/claude-code.md#jev-optional) picks a natural break for the
-handoff and checks it for missing items, for a fraction of a cent each.
+fresh session. It asks once per session and waits while background tasks run. This
+saves tokens because every request resends the whole conversation, so rotating early
+keeps every later request small. A second hook saves a redacted draft to
+`.reference/handoffs/` before any compaction. See what your handoffs saved with
+`/thread-health` or `agent-thread-tools health savings --agent claude`.
+
+**Optional: Jev.** With an OpenRouter key, [Jev](docs/claude-code.md#jev-optional),
+a fast decision model, makes three checks for a fraction of a cent each: it waits past
+the threshold for a natural break (work finished, nothing running; at 1.5 times the
+threshold it hands off regardless), audits the finished handoff for anything a fresh
+session would need, and ranks what the draft summary keeps. Set the key in a terminal,
+not in chat:
+
+```bash
+agent-thread-tools jev-key set      # hidden prompt; checks the key, saves it readable only by you
+agent-thread-tools jev-key status   # shows it masked: sk-or-v1…ac36
+```
 
 The plugin turns this on; set its threshold with `AGENT_THREAD_AUTO_HANDOFF_AT`.
 Without the plugin, run `agent-thread-tools install-skill --agent claude
@@ -186,8 +206,12 @@ agent-thread-tools health check ~/.claude/projects/<project>/<session>.jsonl
 | Command | What it does | Claude Code | Codex |
 | --- | --- | :---: | :---: |
 | 🩺 `health` | Reports session health for all projects or for one session file | ✅ | ✅ |
-| 🧩 `install-skill` | Installs the handoff skill (`--agent claude` or `codex`) | ✅ | ✅ |
+| 💰 `health savings` | Estimates the tokens each handoff saved, net of its own cost | ✅ | ✅ |
+| 🧩 `install-skill` | Installs the skills (`--agent claude` or `codex`); `--auto-handoff` adds the hooks without the plugin | ✅ | ✅ |
 | 📝 `handoff-summary` | Drafts a redacted summary of a session to help write a handoff | ✅ | ✅ |
+| 🔍 `handoff-audit` | Lists what a session said that its handoff leaves out (Jev) | ✅ | ✅ |
+| 🔑 `jev-key` | Stores, checks, or removes the OpenRouter key for Jev, never showing it | ✅ | ✅ |
+| 🪝 `hook` | The automatic-handoff hooks the plugin runs | ✅ | — |
 | 🗂️ `reference init` / `commit` | Creates and commits the local-only `.reference/` repository | ✅ | ✅ |
 | 🖼️ `visual-archive` | Copies screenshots and videos out of a session and verifies the copies | ✅ | ✅ |
 | 🔖 `handoff-marker` | Records which session a handoff came from | ✅ | ✅ |
@@ -238,7 +262,7 @@ Start at [Documentation](docs/README.md), or go straight to a guide:
 
 | | Guide | Covers |
 | :---: | --- | --- |
-| 🟠 | [Claude Code](docs/claude-code.md) | Where sessions live, what health measures, the `/thread-handoff` skill |
+| 🟠 | [Claude Code](docs/claude-code.md) | The plugin, automatic handoff, Jev and its key, and what health measures |
 | 📥 | [Installation](docs/installation.md) | `npx`, global npm, source checkout, and skill installation |
 | 🩺 | [Thread health](docs/health.md) | Report modes, risk domains, remote reports, exit codes |
 | 🌉 | [Handoff workflow](docs/handoff.md) | The Codex handoff skill, summaries, and markers |
