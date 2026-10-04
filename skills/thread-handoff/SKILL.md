@@ -67,7 +67,13 @@ hidden from the project repository, never pushed. Step 1 creates it when missing
 8. Commit: `agent-thread-tools reference commit -m "Handoff: <topic>"`. Do not commit
    to the project repository unless the user asks.
 9. Mark: `agent-thread-tools handoff-marker record --source-session-file <session-file> --handoff-file <handoff path>`.
-10. Report the handoff path and tell the user to run `/clear` (or open a new session).
+10. Report briefly: the handoff path and a few lines on what it carries. End the reply
+    with this as its own final paragraph, after everything else, so it is the last
+    thing the user reads:
+
+    **Next: run `/clear`** to continue in a fresh session that loads this handoff
+    (or open a new session in this project).
+
     The new session loads the handoff through `CLAUDE.local.md` automatically.
 
 ## Boundaries

@@ -3,6 +3,10 @@
 These rules apply to every coding agent working in this repository, including
 Claude Code and Codex.
 
+## Coding Style Rule: American English Spelling
+
+-  always use American English spelling for all identifiers, variable names, function names, and comments (e.g., use color, optimized, behavior instead of colour, optimised, behaviour).
+
 ## No AI credit in the repository or its history
 
 Never credit Claude or any other AI assistant anywhere in this repository:
