@@ -251,3 +251,46 @@ def test_without_jev_or_past_the_hard_limit_it_asks_now(tmp_path: Path, monkeypa
     transcript = write(tmp_path / "s2.jsonl", [reply(460_000)])
     assert stop_decision(event(transcript, session_id="s2", last_assistant_message="still testing"), "300k") is not None
     assert calls == []  # past 1.5x the threshold Jev is not consulted
+
+
+def test_reminds_once_when_the_session_keeps_growing_after_the_handoff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    markers = tmp_path / "markers.jsonl"
+    monkeypatch.setenv("AGENT_THREAD_HANDOFF_MARKER_FILE", str(markers))
+    transcript = write(tmp_path / "s1.jsonl", [reply(310_000)])
+    assert stop_decision(event(transcript), "300k")["decision"] == "block"
+    markers.write_text(
+        json.dumps(
+            {
+                "type": "handoff_completed",
+                "created_at": "2026-10-04T14:21:29Z",
+                "project": "/work/project",
+                "source_session_id": "s1",
+                "source_session_file": str(transcript),
+                "handoff_file": "/work/project/.reference/handoffs/h.md",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    write(transcript, [reply(400_000)])
+    assert stop_decision(event(transcript), "300k") is None  # not yet half a threshold further
+    write(transcript, [reply(470_000)])
+    reminder = stop_decision(event(transcript), "300k")
+    assert reminder is not None and reminder["decision"] == "block"
+    assert "/clear" in reminder["reason"] and "h.md" in reminder["reason"]
+    write(transcript, [reply(600_000)])
+    assert stop_decision(event(transcript), "300k") is None  # only once
+
+
+def test_reminder_suggests_the_handoff_when_none_was_written(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AGENT_THREAD_HANDOFF_MARKER_FILE", str(tmp_path / "none.jsonl"))
+    transcript = write(tmp_path / "s1.jsonl", [reply(310_000)])
+    stop_decision(event(transcript), "300k")
+    write(transcript, [reply(470_000)])
+    reminder = stop_decision(event(transcript), "300k")
+    assert reminder is not None and "none was recorded" in reminder["reason"]
+    assert "thread-handoff" in reminder["reason"]

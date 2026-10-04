@@ -21,6 +21,10 @@
 - The `/thread-handoff` skill runs the tools that ship with it, so the skill and the
   tools always match.
 - The auto-handoff hook waits while Claude Code background tasks are running.
+- If the session keeps growing after the handoff request (by half the threshold), the
+  hook reminds Claude once to tell the user to run `/clear`, or to write the handoff
+  if none was recorded.
+- The `/thread-handoff` skill ends its reply with a separate "Next: run `/clear`" line.
 - Optional Jev support (TypeSafe's decision model on OpenRouter, used when an
   OpenRouter key is set): the auto-handoff hook waits for a natural break past the
   threshold (or hands off at 1.5 times it), and the new `handoff-audit` command lists

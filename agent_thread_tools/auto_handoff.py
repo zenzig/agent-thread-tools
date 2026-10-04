@@ -23,6 +23,7 @@ DEFAULT_THRESHOLD = "250k"
 NATURAL_BREAK_MIN = 0.6
 NATURAL_BREAK_SAMPLES = 2  # Jev's score for one reply varies; averaging two steadies it near the cut-off
 HARD_LIMIT_FACTOR = 1.5
+REMINDER_GROWTH = 0.5  # remind once after the session grows half a threshold past the ask
 NATURAL_BREAK_QUESTION = {
     "type": "noul",
     "instructions": (
@@ -158,7 +159,8 @@ def stop_decision(event: dict[str, Any], threshold: str) -> dict[str, Any] | Non
         return None
     marker = state_file(session_id)
     if marker.exists():
-        return None  # ask once per session; the user may choose to keep going
+        # Asked once already; the user may choose to keep going. Remind once if it keeps growing.
+        return reminder_decision(marker, session_id, tokens, limit)
     natural_break = None
     if tokens < limit * HARD_LIMIT_FACTOR:
         natural_break = natural_break_probability(event)
@@ -195,6 +197,67 @@ def stop_decision(event: dict[str, Any], threshold: str) -> dict[str, Any] | Non
             "handoff is saved and that running /clear continues from it in a fresh, "
             "smaller session. If the user asked earlier in this session not to hand "
             "off, skip the handoff, say so in one line, and stop."
+        ),
+    }
+
+
+def recorded_handoff(session_id: str) -> str | None:
+    """The handoff file recorded for this session, if the handoff was written."""
+    from agent_thread_tools.handoff_markers import load_handoff_markers
+
+    try:
+        markers = load_handoff_markers()
+    except OSError:
+        return None
+    files = [marker["handoff_file"] for marker in markers if marker["source_session_id"] == session_id]
+    return files[-1] if files else None
+
+
+def reminder_decision(state_path: Path, session_id: str, tokens: int, limit: int) -> dict[str, Any] | None:
+    """One reminder when the session keeps growing after the handoff was asked for."""
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(state, dict) or state.get("reminded_at"):
+        return None
+    asked_tokens = int(state.get("context_tokens") or limit)
+    if tokens < asked_tokens + limit * REMINDER_GROWTH:
+        return None
+    state["reminded_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    try:
+        state_path.write_text(json.dumps(state) + "\n", encoding="utf-8")
+    except OSError:
+        return None
+    log_decision(session_id, tokens, limit, None, "reminded")
+    handoff = recorded_handoff(session_id)
+    if handoff:
+        situation = (
+            f"the handoff for this session was saved ({handoff}) at about {asked_tokens:,} tokens, "
+            f"but the session kept going and is now about {tokens:,} tokens, so every request "
+            "resends that much."
+        )
+        advice = (
+            "End your reply with one short, separate final paragraph telling the user to run "
+            "/clear to continue from the handoff in a fresh session, and that if work done since "
+            "the handoff matters, they can run the thread-handoff skill again first."
+        )
+    else:
+        situation = (
+            f"a handoff was suggested at about {asked_tokens:,} tokens but none was recorded, and "
+            f"the session is now about {tokens:,} tokens, so every request resends that much."
+        )
+        advice = (
+            "End your reply with one short, separate final paragraph suggesting the user run the "
+            "thread-handoff skill (/agent-thread-tools:thread-handoff from the plugin, or "
+            "/thread-handoff) and then /clear. If the user said earlier not to hand off, say "
+            "only the session's size in one line."
+        )
+    return {
+        "decision": "block",
+        "reason": (
+            f"agent-thread-tools auto-handoff reminder (shown once): {situation} Do not run any "
+            f"tools or continue other work. {advice}"
         ),
     }
 
