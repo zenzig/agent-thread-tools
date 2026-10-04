@@ -189,7 +189,7 @@ def scale_lines(
         items_line += (
             f" of {format_count(thresholds.warn_items)} warning threshold"
         )
-    return [
+    lines = [
         "Scale",
         f"  Status: {status_label(str(details.get('status', 'ok')))}",
         size_line,
@@ -197,6 +197,14 @@ def scale_lines(
         compaction_line,
         f"  Visuals: {format_count(metrics['visual_artifacts'])}",
     ]
+    active = metrics.get("latest_active_token_total")
+    window = metrics.get("latest_model_context_window")
+    if isinstance(active, int) and isinstance(window, int) and window > 0:
+        lines.append(
+            f"  Context: {format_count(active)} of {format_count(window)} tokens "
+            f"({round(100 * active / window)}%)"
+        )
+    return lines
 
 
 def notice_lines(item: dict[str, Any]) -> list[str]:

@@ -87,8 +87,9 @@ marketplace:
 /plugin install agent-thread-tools@agent-thread-tools
 ```
 
-The plugin brings the `/thread-handoff` skill and the two automatic-handoff hooks
-below, and runs the Python tools bundled with it, so the npm package is optional
+The plugin brings the `/thread-handoff` skill, a `/thread-health` skill that reports
+this session's health and context, how far it is from the next automatic handoff, and
+what the project's handoffs have saved, and the two automatic-handoff hooks below, and runs the Python tools bundled with it, so the npm package is optional
 (install it for `health`, archives, and recovery from a terminal). It needs Python 3
 on the machine where Claude Code runs. Set the threshold with
 `AGENT_THREAD_AUTO_HANDOFF_AT` (default `250k`), for example in the `env` section of

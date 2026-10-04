@@ -210,25 +210,27 @@ function installClaudeSkill() {
     return 1;
   }
   try {
-    const source = path.join(ROOT, "skills", "thread-handoff");
-    const target = path.join(claudeHome, "skills", "thread-handoff");
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.rmSync(target, { recursive: true, force: true });
-    fs.cpSync(source, target, { recursive: true });
-    // Outside a plugin, Claude Code does not fill in ${CLAUDE_PLUGIN_ROOT}; use this package.
-    const skillFile = path.join(target, "SKILL.md");
-    fs.writeFileSync(
-      skillFile,
-      fs.readFileSync(skillFile, "utf8").split("${CLAUDE_PLUGIN_ROOT}").join(ROOT)
-    );
+    for (const name of ["thread-handoff", "thread-health"]) {
+      const source = path.join(ROOT, "skills", name);
+      const target = path.join(claudeHome, "skills", name);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.rmSync(target, { recursive: true, force: true });
+      fs.cpSync(source, target, { recursive: true });
+      // Outside a plugin, Claude Code does not fill in ${CLAUDE_PLUGIN_ROOT}; use this package.
+      const skillFile = path.join(target, "SKILL.md");
+      fs.writeFileSync(
+        skillFile,
+        fs.readFileSync(skillFile, "utf8").split("${CLAUDE_PLUGIN_ROOT}").join(ROOT)
+      );
+    }
     process.stdout.write(
-      `Installed thread-handoff to ${target}\n\n` +
-        "Invoke it in Claude Code with: /thread-handoff\n" +
-        "Check session health with: agent-thread-tools health --agent claude\n"
+      `Installed thread-handoff and thread-health to ${path.join(claudeHome, "skills")}\n\n` +
+        "Invoke them in Claude Code with: /thread-handoff and /thread-health\n" +
+        "Check every project's health with: agent-thread-tools health --agent claude\n"
     );
     return 0;
   } catch (error) {
-    process.stderr.write(`Failed to install thread-handoff: ${error.message}\n`);
+    process.stderr.write(`Failed to install the Claude Code skills: ${error.message}\n`);
     return 1;
   }
 }

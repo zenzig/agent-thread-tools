@@ -19,7 +19,7 @@ def test_plugin_manifest_matches_the_package() -> None:
     assert plugin["version"] == package["version"] == (ROOT / "VERSION").read_text().strip()
     # Claude Code loads every skill in skills/, so it must hold only the Claude Code skill.
     assert "skills" not in plugin
-    assert sorted(path.name for path in (ROOT / "skills").iterdir()) == ["thread-handoff"]
+    assert sorted(path.name for path in (ROOT / "skills").iterdir()) == ["thread-handoff", "thread-health"]
 
 
 def test_marketplace_lists_the_plugin_from_this_repository() -> None:

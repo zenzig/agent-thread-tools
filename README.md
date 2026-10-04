@@ -74,7 +74,7 @@ project forward.
 /plugin install agent-thread-tools@agent-thread-tools
 ```
 
-That adds `/thread-handoff` and turns on [automatic handoff](#automatic-handoff).
+That adds `/thread-handoff` and `/thread-health` and turns on [automatic handoff](#automatic-handoff).
 
 **As a command-line tool** (needs Node.js 18+ and Python 3) for health reports,
 archives, and recovery:

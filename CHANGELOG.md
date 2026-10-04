@@ -8,6 +8,9 @@
   threshold, and a `PreCompact` hook that saves a redacted draft handoff to
   `.reference/handoffs/` before compaction. `--no-auto-handoff` removes both, and
   `AGENT_THREAD_AUTO_HANDOFF=off` skips them for one session.
+- Add the `/thread-health` Claude Code skill (in the plugin and `install-skill`): this
+  session's health and context, distance to the next automatic handoff, and the
+  project's handoff savings. `health check` now prints a `Context:` line.
 - Add `agent-thread-tools hook claude-stop|claude-precompact`, the commands those
   hooks run.
 - Package the project as a Claude Code plugin, with the repository as its own

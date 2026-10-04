@@ -29,6 +29,7 @@
     "codex-skills/codex-thread-handoff/references/*.md",
     "skills/thread-handoff/SKILL.md",
     "skills/thread-handoff/references/*.md",
+    "skills/thread-health/SKILL.md",
     "assets/agent-thread-tools-header.png",
     "README.md",
     "CHANGELOG.md",
