@@ -190,8 +190,8 @@ def stop_decision(event: dict[str, Any], threshold: str) -> dict[str, Any] | Non
         "reason": (
             f"agent-thread-tools auto-handoff: this session's context is about "
             f"{tokens:,} tokens, past the {limit:,}-token threshold{moment}, so every further "
-            "request resends that much. Run the /thread-handoff skill now to write the "
-            "handoff. When it is done, tell the user in one short paragraph that the "
+            "request resends that much. Run the thread-handoff skill now (/agent-thread-tools:thread-handoff "
+            "from the plugin, or /thread-handoff) to write the handoff. When it is done, tell the user in one short paragraph that the "
             "handoff is saved and that running /clear continues from it in a fresh, "
             "smaller session. If the user asked earlier in this session not to hand "
             "off, skip the handoff, say so in one line, and stop."

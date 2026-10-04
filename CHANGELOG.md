@@ -15,7 +15,8 @@
   hooks run.
 - Package the project as a Claude Code plugin, with the repository as its own
   marketplace (`/plugin marketplace add zenzig/agent-thread-tools`). The plugin
-  installs `/thread-handoff` and the automatic-handoff hooks and runs its bundled
+  installs the skills as `/agent-thread-tools:thread-handoff` and `/agent-thread-tools:thread-health` and the
+  automatic-handoff hooks and runs its bundled
   Python tools; `AGENT_THREAD_AUTO_HANDOFF_AT` sets its threshold.
 - The `/thread-handoff` skill runs the tools that ship with it, so the skill and the
   tools always match.

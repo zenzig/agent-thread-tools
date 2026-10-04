@@ -12,7 +12,7 @@ release process.
 | Topic | Use this when |
 | --- | --- |
 | [Installation](installation.md) | You want to install the tools or a handoff skill, from a terminal or from inside a Claude Code app. |
-| [Claude Code](claude-code.md) | You use Claude Code and want the details: where sessions live, what health measures, `/thread-handoff`, and how handoffs link sessions. |
+| [Claude Code](claude-code.md) | You use Claude Code and want the details: where sessions live, what health measures, the plugin and its skills, and how handoffs link sessions. |
 | [Thread health](health.md) | You want local or SSH-host project reports, report modes, risk domains, and token reports. |
 | [Handoff workflow](handoff.md) | You want to preserve durable project context and continue in a fresh session. |
 | [Session archive](session-archive.md) | You want staged, verified cold storage and recoverable local pruning for old Claude Code and Codex sessions. |

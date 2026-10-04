@@ -9,7 +9,7 @@ It reads Claude Code and Codex sessions; the format is detected from the file.
 The archive location can be a project folder, a USB drive, an external drive, a
 secondary internal drive, or a synced folder.
 
-In Claude Code, `/thread-handoff` does this for you: it scans the session and
+In Claude Code, the thread-handoff skill does this for you: it scans the session and
 archives the screenshots that still matter into the project's `.reference/`
 folder. See [Claude Code](claude-code.md).
 

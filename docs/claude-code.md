@@ -41,12 +41,14 @@ exceeds it, in which case 1,000,000 is assumed. Set `CLAUDE_CONTEXT_WINDOW` to f
 agent-thread-tools install-skill --agent claude
 ```
 
-This installs `~/.claude/skills/thread-handoff`. `/thread-handoff` then appears in
+This installs `~/.claude/skills/thread-handoff` and `~/.claude/skills/thread-health`.
+`/thread-handoff` and `/thread-health` then appear in
 the slash-command menu of every Claude Code app (terminal, IDE, desktop, and mobile
 through Remote Control) when the session runs on that machine. See
 [Installation](installation.md#claude-code) to install from inside an app.
 
-Running `/thread-handoff` in a session:
+With the [plugin](#plugin) instead, the same skills are named `/agent-thread-tools:thread-handoff`
+and `/agent-thread-tools:thread-health`. Running the handoff skill in a session:
 
 1. runs the health check and redacted summary on the current session;
 2. archives screenshots that still matter and saves large reference text;
@@ -87,18 +89,21 @@ marketplace:
 /plugin install agent-thread-tools@agent-thread-tools
 ```
 
-The plugin brings the `/thread-handoff` skill, a `/thread-health` skill that reports
+The plugin brings the `/agent-thread-tools:thread-handoff` skill, the `/agent-thread-tools:thread-health` skill that reports
 this session's health and context, how far it is from the next automatic handoff, and
 what the project's handoffs have saved, and the two automatic-handoff hooks below, and runs the Python tools bundled with it, so the npm package is optional
-(install it for `health`, archives, and recovery from a terminal). It needs Python 3
+(install it for `health`, archives, recovery, and `jev-key` from a terminal). Plugin
+skills are named after the plugin, so these are not `/thread-handoff` and
+`/thread-health`; typing `/thread` in the slash-command menu lists them. Restart a
+session that was open during the install to load them. It needs Python 3
 on the machine where Claude Code runs. Set the threshold with
 `AGENT_THREAD_AUTO_HANDOFF_AT` (default `250k`), for example in the `env` section of
 `~/.claude/settings.json`; `AGENT_THREAD_AUTO_HANDOFF=off` turns the hooks off.
 Plugins from your own marketplaces don't update automatically unless you turn that on
 in `/plugin`, under Marketplaces.
 
-If you used `install-skill` before, remove the copied skill
-(`rm -r ~/.claude/skills/thread-handoff`) and run
+If you used `install-skill` before, remove the copied skills
+(`rm -r ~/.claude/skills/thread-handoff ~/.claude/skills/thread-health`) and run
 `agent-thread-tools install-skill --agent claude --no-auto-handoff`, so the skill and
 hooks aren't installed twice. Cloud sessions started on claude.ai/code don't load
 plugins.
@@ -118,7 +123,8 @@ have (a backup is saved as `settings.json.agent-thread-tools.bak`):
   size as of the previous reply). While background tasks are still running, it
   waits and asks after they finish, so the handoff records the finished result. The
   first time a finished turn is past the threshold, it asks Claude to run
-  `/thread-handoff` and to tell you to run `/clear`. It asks once per session
+  the thread-handoff skill (`/agent-thread-tools:thread-handoff` with the plugin, `/thread-handoff`
+  with `install-skill`) and to tell you to run `/clear`. It asks once per session
   (recorded in `~/.claude/thread-tools/auto-handoff/`), never interrupts a turn that
   is still working, and never repeats itself in a loop.
 - `PreCompact` runs `agent-thread-tools hook claude-precompact` before any
@@ -146,7 +152,7 @@ only; each check costs a fraction of a cent.
   in-between state. Each decision is logged to
   `~/.claude/thread-tools/auto-handoff/decisions.jsonl`, and `health savings` shows how
   many turns Jev held before each handoff.
-- **What the handoff is missing.** `/thread-handoff` runs
+- **What the handoff is missing.** The thread-handoff skill runs
   `agent-thread-tools handoff-audit <session-file> <handoff-file>` after writing the
   handoff. It checks each prompt you typed, each turn's closing message, and Claude's
   longer messages from the middle of a turn, and lists

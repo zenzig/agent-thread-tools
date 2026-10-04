@@ -9,7 +9,7 @@
     {
       "name": "agent-thread-tools",
       "source": "./",
-      "description": "Hand off long Claude Code sessions before they grow large, automatically or with /thread-handoff."
+      "description": "Hand off long Claude Code sessions before they grow large, automatically or with /agent-thread-tools:thread-handoff."
     }
   ]
 }

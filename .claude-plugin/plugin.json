@@ -2,7 +2,7 @@
   "name": "agent-thread-tools",
   "displayName": "Agent Thread Tools",
   "version": "2.1.0",
-  "description": "Hand off long Claude Code sessions before they grow large: /thread-handoff writes a reviewed handoff the next session loads, and an automatic hook asks for one once the context passes a threshold.",
+  "description": "Hand off long Claude Code sessions before they grow large: /agent-thread-tools:thread-handoff writes a reviewed handoff the next session loads, and an automatic hook asks for one once the context passes a threshold.",
   "author": {
     "name": "Rich Olson",
     "url": "https://github.com/zenzig"

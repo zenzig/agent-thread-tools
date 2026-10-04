@@ -34,8 +34,8 @@ Install the skill once with `agent-thread-tools install-skill --agent claude`
 
 1. Run `agent-thread-tools health --agent claude`.
 2. If health is `WARN`, keep working and check again at the next break.
-3. If health is `DANGER`, or a piece of work is done, run `/thread-handoff` in that
-   session.
+3. If health is `DANGER`, or a piece of work is done, run `/agent-thread-tools:thread-handoff` in
+   that session (`/thread-handoff` if you used `install-skill` instead of the plugin).
 4. Read the handoff it writes and correct anything wrong.
 5. Run `/clear` or open a new session. It starts with the handoff already loaded.
 

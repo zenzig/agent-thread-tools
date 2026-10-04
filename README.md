@@ -35,11 +35,11 @@ that the next session loads automatically.
 <table>
   <tr>
     <td align="center" width="33%">🩺<br><strong>Health checks</strong><br><sub>Scores every session's size, compactions, context use, and screenshots, then says continue, monitor, or hand off.</sub></td>
-    <td align="center" width="33%">🌉<br><strong>Handoffs</strong><br><sub><code>/thread-handoff</code> writes a short, reviewed brief that the next session loads on its own.</sub></td>
+    <td align="center" width="33%">🌉<br><strong>Handoffs</strong><br><sub>The <code>thread-handoff</code> skill writes a short, reviewed brief that the next session loads on its own.</sub></td>
     <td align="center" width="33%">⏱️<br><strong>Automatic handoff</strong><br><sub>A plugin hook starts the handoff once a session passes 250k tokens, before compaction does.</sub></td>
   </tr>
   <tr>
-    <td align="center" width="33%">💰<br><strong>Token savings</strong><br><sub><code>health savings</code> estimates the tokens each handoff saved, and <code>/thread-health</code> shows it in chat.</sub></td>
+    <td align="center" width="33%">💰<br><strong>Token savings</strong><br><sub><code>health savings</code> estimates the tokens each handoff saved, and the <code>thread-health</code> skill shows it in chat.</sub></td>
     <td align="center" width="33%">⚖️<br><strong>Jev checks</strong><br><sub>Optional: Jev picks a natural break for the handoff and lists anything it left out, for a fraction of a cent.</sub></td>
     <td align="center" width="33%">🗂️<br><strong>Reference archive</strong><br><sub>Handoffs, specs, and screenshots live in <code>.reference/</code>, a local git repository that is never pushed.</sub></td>
   </tr>
@@ -80,9 +80,10 @@ project forward.
 /plugin install agent-thread-tools@agent-thread-tools
 ```
 
-That adds `/thread-handoff` (write a handoff now) and `/thread-health` (this
-session's size, distance to the next handoff, and tokens saved so far), and turns on
-[automatic handoff](#automatic-handoff). To use it in every project, install with
+That adds two skills, `/agent-thread-tools:thread-handoff` (write a handoff now) and
+`/agent-thread-tools:thread-health` (this session's size, distance to the next handoff, and tokens
+saved so far), and turns on [automatic handoff](#automatic-handoff).
+Restart any session that was already open to load them. To use it in every project, install with
 `claude plugin install agent-thread-tools@agent-thread-tools --scope user`.
 
 **As a command-line tool** (needs Node.js 18+ and Python 3) for health reports,
@@ -90,7 +91,7 @@ archives, and recovery:
 
 ```bash
 npm install -g agent-thread-tools
-agent-thread-tools install-skill --agent claude   # adds the /thread-handoff skill
+agent-thread-tools install-skill --agent claude   # adds /thread-handoff and /thread-health
 agent-thread-tools health --agent claude          # checks every Claude Code project
 ```
 
@@ -99,12 +100,22 @@ agent-thread-tools with `npm install -g agent-thread-tools`, then run
 `agent-thread-tools install-skill --agent claude`."* Claude runs those commands on the
 machine where the session runs.
 
+The skills' names depend on how you installed them; the rest of this README uses the
+plugin names:
+
+| Installed with | Write a handoff | Check this session |
+| --- | --- | --- |
+| The plugin | `/agent-thread-tools:thread-handoff` | `/agent-thread-tools:thread-health` |
+| `install-skill` | `/thread-handoff` | `/thread-health` |
+
+In the slash-command menu, typing `/thread` lists both either way.
+
 Then, whenever health says `WARN` or `DANGER`, or a piece of work is done:
 
 <table>
   <tr>
     <td align="center" width="25%">🩺<br><strong>1. Check</strong><br><sub><code>health --agent claude</code> shows which sessions are at risk.</sub></td>
-    <td align="center" width="25%">🌉<br><strong>2. Hand off</strong><br><sub>Run <code>/thread-handoff</code> in that Claude Code session.</sub></td>
+    <td align="center" width="25%">🌉<br><strong>2. Hand off</strong><br><sub>Run <code>/agent-thread-tools:thread-handoff</code> in that Claude Code session.</sub></td>
     <td align="center" width="25%">✍️<br><strong>3. Review</strong><br><sub>Read the handoff it wrote and correct anything wrong.</sub></td>
     <td align="center" width="25%">🧹<br><strong>4. Start fresh</strong><br><sub>Run <code>/clear</code>. The new session starts with the handoff loaded.</sub></td>
   </tr>
@@ -116,9 +127,9 @@ it, the tools read Codex sessions.
 ### Where it works
 
 Run the commands yourself in any terminal, or stay inside Claude Code: type
-`/thread-handoff` or `/thread-health`, or ask Claude to run a command for you. That
-works in every Claude Code app, as long as the session runs on a machine where
-agent-thread-tools and the skill are installed:
+`/agent-thread-tools:thread-handoff` or `/agent-thread-tools:thread-health`, or ask Claude to run a
+command for you. That works in every Claude Code app, as long as the session runs on
+a machine where the plugin or the skills are installed:
 
 <table>
   <tr>
@@ -131,7 +142,7 @@ agent-thread-tools and the skill are installed:
 
 <p align="center">
   <img src="assets/thread-handoff-mobile.png" alt="The Claude mobile app's slash-command menu, with /thread-handoff listed first" width="360"><br>
-  <sub><code>/thread-handoff</code> in the Claude mobile app, controlling a session on a server through Remote Control.</sub>
+  <sub><code>/thread-handoff</code> (installed with <code>install-skill</code>) in the Claude mobile app, controlling a session on a server through Remote Control.</sub>
 </p>
 
 Cloud sessions started from claude.ai/code or the mobile app without Remote Control
@@ -140,13 +151,13 @@ run on Anthropic's machines, where the tool is not installed.
 ### Automatic handoff
 
 After each turn, a hook checks the session's context size. Once it passes the
-threshold (default `250k` tokens, or a share such as `60%`), Claude runs
-`/thread-handoff` and tells you it's saved; you run `/clear` and continue in a small,
+threshold (default `250k` tokens, or a share such as `60%`), Claude runs the
+thread-handoff skill and tells you it's saved; you run `/clear` and continue in a small,
 fresh session. It asks once per session and waits while background tasks run. This
 saves tokens because every request resends the whole conversation, so rotating early
 keeps every later request small. A second hook saves a redacted draft to
 `.reference/handoffs/` before any compaction. See what your handoffs saved with
-`/thread-health` or `agent-thread-tools health savings --agent claude`.
+`/agent-thread-tools:thread-health` or `agent-thread-tools health savings --agent claude`.
 
 **Optional: Jev.** With an OpenRouter key, [Jev](docs/claude-code.md#jev-optional),
 a fast decision model, makes three checks for a fraction of a cent each: it waits past

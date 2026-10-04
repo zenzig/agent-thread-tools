@@ -74,9 +74,10 @@ Install agent-thread-tools with `npm install -g agent-thread-tools`, then run
 `agent-thread-tools install-skill --agent claude`.
 ```
 
-Claude may ask for permission before it runs them. The skill is installed to
-`~/.claude/skills/thread-handoff`. If `/thread-handoff` is not in the slash-command
-menu afterwards, start a new session.
+Claude may ask for permission before it runs them. The skills are installed to
+`~/.claude/skills/`. If `/thread-handoff` and `/thread-health` are not in the
+slash-command menu afterwards, start a new session. (With the plugin, they are named
+`/agent-thread-tools:thread-handoff` and `/agent-thread-tools:thread-health` instead.)
 
 ### Codex
 
