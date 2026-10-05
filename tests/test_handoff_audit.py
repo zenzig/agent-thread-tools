@@ -108,3 +108,89 @@ def test_jev_key_comes_from_the_key_file(tmp_path: Path, monkeypatch: pytest.Mon
     assert jev.api_key() == "sk-or-test" and jev.available()
     monkeypatch.setenv("AGENT_THREAD_JEV", "off")
     assert not jev.available()
+
+
+PREVIOUS = """# Old Handoff - 2026-10-04
+
+## Goal / Next Action
+Wait for Rich's device checks (list below).
+1. Volume keys change the spoken reply's loudness (X4).
+2. Self-test 39/39.
+
+## Current State
+Done: X4 shipped.
+Current: shipped; device-unverified: X4.
+
+## Decisions
+- Use the voice-call stream for speech.
+
+## Open Questions / Risks
+- X4 barge-in unverified on device;
+  Bluetooth follows the headset's call level.
+"""
+
+
+def test_open_items_are_read_from_the_previous_handoff() -> None:
+    items = handoff_audit.open_items(PREVIOUS)
+    assert "1. Volume keys change the spoken reply's loudness (X4)." in items
+    assert "- X4 barge-in unverified on device; Bluetooth follows the headset's call level." in items
+    assert any("Current: shipped; device-unverified: X4." in item for item in items)
+    assert not any("voice-call stream" in item for item in items)  # a settled decision
+
+
+def test_the_previous_handoff_is_found_through_claude_local_md(tmp_path: Path) -> None:
+    handoffs = tmp_path / ".reference" / "handoffs"
+    handoffs.mkdir(parents=True)
+    old, new = handoffs / "old.md", handoffs / "new.md"
+    old.write_text(PREVIOUS, encoding="utf-8")
+    new.write_text("# New\n", encoding="utf-8")
+    (tmp_path / "CLAUDE.local.md").write_text("Latest handoff: @.reference/handoffs/old.md\n", encoding="utf-8")
+    assert handoff_audit.previous_handoff(new) == old.resolve()
+    # Once CLAUDE.local.md points at the new handoff, there is no previous one to check.
+    (tmp_path / "CLAUDE.local.md").write_text("Latest handoff: @.reference/handoffs/new.md\n", encoding="utf-8")
+    assert handoff_audit.previous_handoff(new) is None
+
+
+def test_audit_lists_open_items_the_new_handoff_drops(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    session = write(tmp_path / "s.jsonl", [user("Ship it.", "2026-10-05T10:00:00Z")])
+    previous = tmp_path / "old.md"
+    previous.write_text(PREVIOUS, encoding="utf-8")
+    handoff = tmp_path / "new.md"
+    handoff.write_text("# New\nX4 device check still owed.\n", encoding="utf-8")
+
+    def decide_many(requests, **_):
+        answers = []
+        for state, questions in requests:
+            reflected = 0.9 if "X4" in state["item"] else 0.1
+            result = {"reflected": {"noul": reflected}}
+            if "needed" in questions:
+                result["needed"] = {"noul": 0.1}
+            answers.append({"answers": result})
+        return answers
+
+    monkeypatch.setattr(jev, "decide_many", decide_many)
+    report = handoff_audit.audit(session, handoff, previous)
+    dropped = [item["text"] for item in report["not_carried_forward"]]
+    assert "2. Self-test 39/39." in dropped
+    assert not any("X4" in text for text in dropped)
+    text = handoff_audit.format_audit(report)
+    assert "Not carried forward from the previous handoff (old.md)" in text and "- 2. Self-test 39/39." in text
+    assert handoff_audit.audit(session, handoff, False)["previous_items_checked"] == 0
+
+
+def test_jev_retries_a_rate_limited_request(monkeypatch: pytest.MonkeyPatch) -> None:
+    import io
+    import urllib.error
+
+    calls = []
+
+    def urlopen(request, timeout):
+        calls.append(1)
+        if len(calls) < 3:
+            raise urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", {}, io.BytesIO(b""))
+        return io.BytesIO(b'{"answers": {}}')
+
+    monkeypatch.setattr(jev.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(jev.time, "sleep", lambda seconds: None)
+    assert jev.decide({"x": 1}, {}, key="sk-or-test") == {"answers": {}}
+    assert len(calls) == 3

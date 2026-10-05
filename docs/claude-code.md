@@ -159,7 +159,11 @@ only; each check costs a fraction of a cent.
   `agent-thread-tools handoff-audit <session-file> <handoff-file>` after writing the
   handoff. It checks each prompt you typed, each turn's closing message, and Claude's
   longer messages from the middle of a turn, and lists
-  the ones a fresh session would need but the handoff does not state.
+  the ones a fresh session would need but the handoff does not state. It also reads the
+  previous handoff (the one `CLAUDE.local.md` still points to, or `--previous <file>`;
+  `--no-previous` skips it) and lists its open items, such as owed checks, pending
+  decisions, and risks, that the new handoff doesn't carry forward. The new handoff
+  replaces the old one, so anything it drops is lost to the next session.
 - **What the summary keeps.** `handoff-summary`, which the skill uses as a draft and
   the pre-compaction hook saves, keeps the 8 items Jev rates most needed from across
   the whole session, instead of the last 8 messages.

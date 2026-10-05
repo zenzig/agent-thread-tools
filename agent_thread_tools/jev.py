@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import stat
+import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -19,6 +20,9 @@ from agent_thread_tools.redaction import redact_sensitive_text
 
 ENDPOINT = "https://openrouter.ai/api/alpha/decisions"
 DEFAULT_MODEL = "typesafe/jev-1.13"
+RETRIES = 3
+RETRY_CODES = {429, 500, 502, 503, 504}
+RETRY_DELAY = 1.0  # seconds, doubled on each retry
 
 
 class JevError(RuntimeError):
@@ -143,12 +147,18 @@ def decide(
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
         method="POST",
     )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except (OSError, ValueError) as exc:
-        detail = getattr(exc, "read", lambda: b"")()
-        raise JevError(f"Jev request failed: {exc} {detail[:300]!r}") from exc
+    for attempt in range(RETRIES + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except (OSError, ValueError) as exc:
+            # Rate limits and server errors pass; wait and try again before giving up.
+            if getattr(exc, "code", None) in RETRY_CODES and attempt < RETRIES:
+                time.sleep(RETRY_DELAY * 2**attempt)
+                continue
+            detail = getattr(exc, "read", lambda: b"")()
+            raise JevError(f"Jev request failed: {exc} {detail[:300]!r}") from exc
+    raise JevError("Jev request failed")
 
 
 def decide_many(

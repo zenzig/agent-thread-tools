@@ -24,16 +24,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("session_file")
     parser.add_argument("handoff_file")
+    parser.add_argument(
+        "--previous",
+        help="the previous handoff to check for open items (default: the one CLAUDE.local.md points to)",
+    )
+    parser.add_argument("--no-previous", action="store_true", help="don't check the previous handoff")
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
     args = parser.parse_args(argv)
     if not jev.available():
         print(
-            "Handoff audit skipped: no OpenRouter key (set OPENROUTER_API_KEY or save it to "
-            "~/.config/openrouter/key)."
+            "Handoff audit skipped: no OpenRouter key (run `agent-thread-tools jev-key set`, "
+            "or set OPENROUTER_API_KEY)."
         )
         return 0
     try:
-        report = audit(expand_path(args.session_file), expand_path(args.handoff_file))
+        previous = False if args.no_previous else (expand_path(args.previous) if args.previous else None)
+        report = audit(expand_path(args.session_file), expand_path(args.handoff_file), previous)
     except jev.JevError as exc:
         print(f"Handoff audit skipped: {exc}")
         return 0

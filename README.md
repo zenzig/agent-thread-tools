@@ -164,7 +164,8 @@ keeps every later request small. A second hook saves a redacted draft to
 a fast decision model, makes three checks for a fraction of a cent each: it waits past
 the threshold for a natural break (work finished, nothing running; at 1.5 times the
 threshold it hands off regardless), audits the finished handoff for anything a fresh
-session would need, and ranks what the draft summary keeps. Set the key in a terminal,
+session would need, including open items from the previous handoff, and ranks what
+the draft summary keeps. Set the key in a terminal,
 not in chat:
 
 ```bash
@@ -233,7 +234,8 @@ key. Secrets such as keys and tokens are redacted first. What is sent:
 - **Hand-off timing** (`Stop` hook, past the threshold): the last 3,000 characters of
   Claude's latest reply.
 - **Handoff audit** (handoff skill): the handoff, plus each of your prompts and
-  Claude's messages from the session, up to 1,500 characters each.
+  Claude's messages from the session, and the open items of the previous handoff, up to
+  1,500 characters each.
 - **Draft summary** (`handoff-summary`, `PreCompact` hook): the session's messages, up
   to 500 characters each.
 - **Context corrections** (`health savings`): your prompts in sessions after a

@@ -42,6 +42,10 @@
   masked. The tools refuse key files that other users can read.
 - `handoff-audit` reads the messages of current Codex sessions, which no longer log
   `user_message` events.
+- The handoff skill carries forward items still open from the previous handoff (owed
+  checks, pending decisions, proposals, risks), and `handoff-audit` lists any open item
+  of the previous handoff that the new one leaves out (`--previous`, `--no-previous`).
+- Jev requests retry on rate limits and server errors, with a short backoff.
 - Add `health savings`, which estimates the tokens each recorded handoff saved
   (counterfactual: the old session's final size carried forward until it would
   have compacted), minus the handoff's own overhead, raw and price-weighted.

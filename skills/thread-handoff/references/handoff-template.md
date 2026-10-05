@@ -6,6 +6,9 @@ Project: `<path>`; Branch: `<branch>` at `<commit>`; Status: `<one sentence>`
 ## Goal / Next Action
 <Next outcome and the first concrete action.>
 
+Still open from earlier handoffs:
+- <owed check, pending decision, or proposal awaiting a yes> (carried from `<date>`)
+
 ## Current State
 Done: <item>; Current: <item>; Next: <item>
 
