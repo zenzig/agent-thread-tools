@@ -16,5 +16,9 @@
     "session-health",
     "compaction",
     "memory"
-  ]
+  ],
+  "documentationUrl": "https://github.com/zenzig/agent-thread-tools/blob/main/docs/claude-code.md",
+  "supportUrl": "https://github.com/zenzig/agent-thread-tools/issues",
+  "privacyPolicyUrl": "https://github.com/zenzig/agent-thread-tools/blob/main/PRIVACY.md",
+  "icon": "./assets/icon.png"
 }

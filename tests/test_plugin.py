@@ -48,7 +48,7 @@ def test_skill_runs_its_bundled_tools() -> None:
 def test_install_skill_points_the_copy_at_the_package(tmp_path: Path) -> None:
     (tmp_path / ".claude").mkdir()
     result = subprocess.run(
-        ["node", str(ROOT / "bin" / "agent-thread-tools.js"), "install-skill", "--agent", "claude"],
+        ["node", str(ROOT / "cli" / "agent-thread-tools.js"), "install-skill", "--agent", "claude"],
         env={**os.environ, "HOME": str(tmp_path)},
         capture_output=True,
         text=True,

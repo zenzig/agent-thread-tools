@@ -41,7 +41,7 @@ def test_package_metadata_is_publish_ready() -> None:
         == "CLI health checks, handoffs, session archives, visual archives, and recovery tools for OpenAI Codex and Claude Code session threads."
     )
     assert package["author"] == "Rich Olson"
-    assert package["bin"]["agent-thread-tools"] == "bin/agent-thread-tools.js"
+    assert package["bin"]["agent-thread-tools"] == "cli/agent-thread-tools.js"
     assert package["license"] == "MIT"
     assert "codex" in package["keywords"]
     assert "openai-codex" in package["keywords"]
@@ -51,7 +51,7 @@ def test_package_metadata_is_publish_ready() -> None:
 
 def test_npm_cli_help_and_version() -> None:
     help_result = subprocess.run(
-        ["node", str(ROOT / "bin" / "agent-thread-tools.js"), "--help"],
+        ["node", str(ROOT / "cli" / "agent-thread-tools.js"), "--help"],
         cwd=ROOT,
         text=True,
         stdout=subprocess.PIPE,
@@ -59,7 +59,7 @@ def test_npm_cli_help_and_version() -> None:
         check=False,
     )
     version_result = subprocess.run(
-        ["node", str(ROOT / "bin" / "agent-thread-tools.js"), "--version"],
+        ["node", str(ROOT / "cli" / "agent-thread-tools.js"), "--version"],
         cwd=ROOT,
         text=True,
         stdout=subprocess.PIPE,
@@ -84,7 +84,7 @@ def test_npm_cli_dispatches_health_tool() -> None:
     result = subprocess.run(
         [
             "node",
-            str(ROOT / "bin" / "agent-thread-tools.js"),
+            str(ROOT / "cli" / "agent-thread-tools.js"),
             "health",
             "check",
             "--help",
@@ -105,7 +105,7 @@ def test_npm_cli_dispatches_handoff_summary_tool() -> None:
     result = subprocess.run(
         [
             "node",
-            str(ROOT / "bin" / "agent-thread-tools.js"),
+            str(ROOT / "cli" / "agent-thread-tools.js"),
             "handoff-summary",
             "--help",
         ],
@@ -125,7 +125,7 @@ def test_npm_cli_dispatches_recovery_tool() -> None:
     result = subprocess.run(
         [
             "node",
-            str(ROOT / "bin" / "agent-thread-tools.js"),
+            str(ROOT / "cli" / "agent-thread-tools.js"),
             "recover",
             "diagnose",
             "--help",
@@ -163,7 +163,7 @@ def test_npm_cli_dispatches_session_archive_tool() -> None:
     result = subprocess.run(
         [
             "node",
-            str(ROOT / "bin" / "agent-thread-tools.js"),
+            str(ROOT / "cli" / "agent-thread-tools.js"),
             "session-archive",
             "--help",
         ],
@@ -204,7 +204,7 @@ def test_npm_cli_uses_only_first_available_python(tmp_path: Path) -> None:
     env["CALL_LOG"] = str(call_log)
     env["PATH"] = f"{tmp_path}{os.pathsep}{env['PATH']}"
     result = subprocess.run(
-        ["node", str(ROOT / "bin" / "agent-thread-tools.js"), "health"],
+        ["node", str(ROOT / "cli" / "agent-thread-tools.js"), "health"],
         cwd=ROOT,
         env=env,
         text=True,
@@ -234,7 +234,7 @@ def test_npm_pack_excludes_generated_and_local_artifacts() -> None:
     assert all("__pycache__" not in path for path in paths)
     assert all(not path.startswith("tests/") for path in paths)
     assert all(not path.startswith("documentation/") for path in paths)
-    assert "bin/agent-thread-tools.js" in paths
+    assert "cli/agent-thread-tools.js" in paths
     assert "docs/README.md" in paths
     assert "docs/health.md" in paths
     assert "docs/session-archive.md" in paths

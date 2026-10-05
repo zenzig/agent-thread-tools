@@ -14,7 +14,7 @@ cd agent-thread-tools
 agent-thread-tools/
 ├── .github/workflows/publish-npm.yml
 ├── assets/                       README images
-├── bin/agent-thread-tools.js     npm command wrapper
+├── cli/agent-thread-tools.js     npm command wrapper
 ├── agent_thread_tools/           shared Python package
 │   ├── claude_sessions.py        reads Claude Code records in the Codex record shape
 │   ├── claude_recovery.py        Claude Code inspect, checks, and strip-images
@@ -36,7 +36,7 @@ agent-thread-tools/
 └── tools/                        one script per command, agent-thread-*.py
 ```
 
-`bin/agent-thread-tools.js` maps each command to a script in `tools/`: for
+`cli/agent-thread-tools.js` maps each command to a script in `tools/`: for
 example `agent-thread-tools health` runs `tools/agent-thread-health.py`. The
 scripts share `agent_thread_tools/`.
 

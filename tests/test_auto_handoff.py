@@ -163,7 +163,7 @@ def test_precompact_saves_a_draft_only_where_reference_exists(tmp_path: Path, is
 
 def run_install(home: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["node", str(ROOT / "bin" / "agent-thread-tools.js"), "install-skill", "--agent", "claude", *args],
+        ["node", str(ROOT / "cli" / "agent-thread-tools.js"), "install-skill", "--agent", "claude", *args],
         text=True,
         capture_output=True,
         env={**os.environ, "HOME": str(home)},

@@ -6,11 +6,11 @@
   "author": "Rich Olson",
   "type": "commonjs",
   "bin": {
-    "agent-thread-tools": "bin/agent-thread-tools.js",
-    "codex-thread-tools": "bin/agent-thread-tools.js"
+    "agent-thread-tools": "cli/agent-thread-tools.js",
+    "codex-thread-tools": "cli/agent-thread-tools.js"
   },
   "files": [
-    "bin/agent-thread-tools.js",
+    "cli/agent-thread-tools.js",
     "agent_thread_tools/*.py",
     "tools/*.py",
     "docs/README.md",
