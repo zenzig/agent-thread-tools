@@ -72,6 +72,32 @@ def test_codex_items_come_from_message_events(tmp_path: Path) -> None:
     assert [item["text"] for item in handoff_audit.session_items(session)] == ["Keep the API stable.", "Understood."]
 
 
+def message(role: str, text: str) -> dict:
+    return {
+        "type": "response_item",
+        "timestamp": "2026-10-01T10:01:00Z",
+        "payload": {"type": "message", "role": role, "content": [{"type": "input_text", "text": text}]},
+    }
+
+
+def test_codex_items_come_from_response_messages_in_newer_rollouts(tmp_path: Path) -> None:
+    session = write(
+        tmp_path / "rollout.jsonl",
+        [
+            {"type": "session_meta", "timestamp": "2026-10-01T10:00:00Z", "payload": {"id": "c1", "cwd": "/work"}},
+            message("developer", "You are Codex."),
+            message("user", "# AGENTS.md instructions for /work"),
+            message("user", "<environment_context>cwd</environment_context>"),
+            message("user", "Keep the API stable."),
+            {"type": "event_msg", "timestamp": "2026-10-01T10:01:00Z", "payload": {"type": "user_message", "message": "Keep the API stable."}},
+            message("assistant", "Understood."),
+            message("user", "Use the installed `codex-thread-handoff` skill to create a handoff."),
+            message("assistant", "Writing the handoff."),
+        ],
+    )
+    assert [item["text"] for item in handoff_audit.session_items(session)] == ["Keep the API stable.", "Understood."]
+
+
 def test_jev_key_comes_from_the_key_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("AGENT_THREAD_JEV", raising=False)

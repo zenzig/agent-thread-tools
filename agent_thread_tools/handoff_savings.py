@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from agent_thread_tools.handoff_markers import session_identity
-from agent_thread_tools.sessionlib import iter_jsonl, session_agent
+from agent_thread_tools.sessionlib import iter_jsonl, record_text, session_agent
 
 COMPACTION_SHARE = 0.83
 CORRECTION_MIN = 0.7
@@ -141,9 +141,16 @@ def handoff_start(path: Path, marker_time: str, asked_at: str | None) -> str:
             )
             if not is_tool_result:
                 start = timestamp
-        elif record.get("type") == "event_msg":
+        elif record.get("type") in {"event_msg", "response_item"}:
             payload = record.get("payload") or {}
-            if isinstance(payload, dict) and payload.get("type") == "user_message":
+            if not isinstance(payload, dict):
+                continue
+            # Older Codex logs user_message events; newer ones only user response messages.
+            if payload.get("type") == "user_message" or (
+                payload.get("type") == "message"
+                and payload.get("role") == "user"
+                and not record_text(record).lstrip().startswith(("<", "# AGENTS.md"))
+            ):
                 start = timestamp
     return start or marker_time
 

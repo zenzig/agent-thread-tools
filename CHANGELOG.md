@@ -40,6 +40,8 @@
   it hidden (or reads `--stdin`), checks it with one test call, and stores it in
   `~/.config/agent-thread-tools/openrouter-key` with mode `600`; `status` shows it
   masked. The tools refuse key files that other users can read.
+- `handoff-audit` reads the messages of current Codex sessions, which no longer log
+  `user_message` events.
 - Add `health savings`, which estimates the tokens each recorded handoff saved
   (counterfactual: the old session's final size carried forward until it would
   have compacted), minus the handoff's own overhead, raw and price-weighted.

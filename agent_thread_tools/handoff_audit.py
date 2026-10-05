@@ -13,13 +13,14 @@ from pathlib import Path
 from typing import Any
 
 from agent_thread_tools import jev
-from agent_thread_tools.sessionlib import iter_jsonl, session_agent
+from agent_thread_tools.sessionlib import iter_jsonl, payload_role, payload_type, record_text, session_agent
 
 NEEDED_MIN = 0.7
 SUBSTANTIAL_CHARS = 120  # mid-turn assistant messages at least this long are checked too
 ITEM_LIMIT = 300
 REFLECTED_MAX = 0.3
 SKIPPED_PREFIXES = ("<", "Stop hook", "Base directory", "[Request")
+CODEX_SKIPPED_PREFIXES = ("<", "# AGENTS.md")  # environment context and instruction files
 
 NEEDED = jev.noul(
     "Would a fresh coding session that continues this project need this item to work correctly?",
@@ -77,18 +78,31 @@ def session_items(path: Path) -> list[dict[str, str]]:
 
 
 def _codex_items(path: Path) -> list[dict[str, str]]:
-    items = []
+    """User and assistant messages from a Codex rollout, up to the handoff request.
+
+    Newer Codex versions record messages only as ``response_item`` messages; older
+    ones also log ``event_msg`` copies, which are skipped when they repeat.
+    """
+    items: list[dict[str, str]] = []
     for _line_no, _raw, record in iter_jsonl(path):
-        payload = record.get("payload")
-        if record.get("type") != "event_msg" or not isinstance(payload, dict):
+        rtype, ptype = record.get("type"), payload_type(record)
+        if rtype == "response_item" and ptype == "message":
+            role = payload_role(record)
+        elif rtype == "event_msg":
+            role = {"user_message": "user", "agent_message": "assistant"}.get(ptype, "")
+        else:
             continue
-        role = {"user_message": "user", "agent_message": "assistant"}.get(payload.get("type"))
-        text = payload.get("message")
-        if role and isinstance(text, str) and text.strip():
-            if "codex-thread-handoff" in text:
-                break
-            items.append({"role": role, "timestamp": str(record.get("timestamp") or ""), "text": text})
-    return items
+        if role not in {"user", "assistant"}:
+            continue  # developer and system instructions
+        text = record_text(record).strip()
+        if not text or text.startswith(CODEX_SKIPPED_PREFIXES):
+            continue
+        if role == "user" and "codex-thread-handoff" in text:
+            break
+        if items and items[-1]["role"] == role and items[-1]["text"] == text:
+            continue
+        items.append({"role": role, "timestamp": str(record.get("timestamp") or ""), "text": text})
+    return items[-ITEM_LIMIT:]
 
 
 def audit(session_file: Path, handoff_file: Path) -> dict[str, Any]:
