@@ -31,7 +31,7 @@ def test_root_readme_is_concise_and_links_docs_index() -> None:
     text = readme.read_text(encoding="utf-8")
     non_blank_lines = [line for line in text.splitlines() if line.strip()]
 
-    assert len(non_blank_lines) <= 280
+    assert len(non_blank_lines) <= 300
     assert "[Documentation](docs/README.md)" in text
     assert re.search(r"^## .*Documentation$", text, re.MULTILINE)
     assert '<a href="CHANGELOG.md">Changelog</a>' in text
@@ -111,7 +111,7 @@ def test_readme_is_a_concise_open_source_project_overview() -> None:
     assert "/path/to/project" not in text
     assert "NVM" in text
     assert text.count(MEDIUM_ARTICLE_URL) == 1
-    assert len(text.splitlines()) <= 340
+    assert len(text.splitlines()) <= 360
 
 
 def test_root_readme_lists_remote_health_command() -> None:

@@ -31,6 +31,7 @@
     "skills/thread-handoff/references/*.md",
     "skills/thread-health/SKILL.md",
     "assets/agent-thread-tools-header.png",
+    "assets/usage-limits.svg",
     "README.md",
     "CHANGELOG.md",
     "SECURITY.md",

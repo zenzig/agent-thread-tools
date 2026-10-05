@@ -178,6 +178,22 @@ Without the plugin, run `agent-thread-tools install-skill --agent claude
 other, not both. `AGENT_THREAD_AUTO_HANDOFF=off` skips it for a session. Hooks may not
 fire in the desktop app (a reported Claude Code issue), so check before relying on it.
 
+### Stretching your plan's usage limits
+
+Every request resends the whole conversation, so a long session spends most of its
+tokens re-reading its own history, and all of it counts against your plan's session and
+weekly usage limits. Automatic handoff keeps each session in the low, cheap part of
+that curve:
+
+![Two lines show the context sent with each request over a working day. Without handoff, it climbs steadily until compaction. With automatic handoff, each session drops back to a small size whenever it reaches the threshold, and the shaded gap between the lines is the tokens no longer resent.](assets/usage-limits.svg)
+
+In the author's own work, with every Claude Code project on one machine running
+automatic handoff, long sessions used roughly 30–40% fewer tokens, leaving that much
+more room under the plan's limits. Jev's audits of the handoffs and the corrections
+counted in the sessions that followed showed no measurable drop in quality. Your
+savings depend on how long your sessions run; `health savings` measures them on your
+machine.
+
 ## 📦 What a handoff leaves behind
 
 ```text
