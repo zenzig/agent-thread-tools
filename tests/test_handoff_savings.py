@@ -140,3 +140,18 @@ def test_a_session_with_two_markers_is_counted_once(tmp_path: Path) -> None:
     corrected = {**marker(old, "old", "2026-10-01T11:01:05Z"), "handoff_file": "/work/project/.reference/handoffs/fixed.md"}
     rows = project_savings([first, corrected], [old, tmp_path / "new.jsonl"])
     assert len(rows) == 1 and rows[0]["handoff_file"].endswith("fixed.md")
+
+
+def test_handoff_cost_starts_at_the_prompt_that_led_to_it_not_an_old_ask(tmp_path: Path) -> None:
+    from agent_thread_tools.handoff_savings import handoff_start
+
+    session = tmp_path / "s.jsonl"
+    records = [
+        {"type": "user", "timestamp": "2026-10-04T14:20:00Z", "message": {"role": "user", "content": "Stop hook feedback: hand off"}},
+        {"type": "user", "timestamp": "2026-10-04T20:00:00Z", "message": {"role": "user", "content": "keep going"}},
+        {"type": "user", "timestamp": "2026-10-05T00:39:00Z", "message": {"role": "user", "content": "write the handoff"}},
+    ]
+    session.write_text("".join(json.dumps(item) + "\n" for item in records), encoding="utf-8")
+    assert handoff_start(session, "2026-10-05T00:40:00Z", "2026-10-04T14:20:00Z") == "2026-10-05T00:39:00Z"
+    # When the ask is the latest thing before the marker, the cost starts there.
+    assert handoff_start(session, "2026-10-04T14:25:00Z", "2026-10-04T14:20:05Z") == "2026-10-04T14:20:05Z"

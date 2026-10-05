@@ -126,9 +126,11 @@ def compaction_point(requests: list[dict[str, Any]]) -> int:
 
 
 def handoff_start(path: Path, marker_time: str, asked_at: str | None) -> str:
-    """When the handoff turn began: the auto-handoff ask, else the last user prompt before it."""
-    if asked_at and asked_at <= marker_time:
-        return asked_at
+    """When the handoff turn began: the later of the auto-handoff ask and the last prompt before it.
+
+    A session can keep working long after the hook asks; the handoff then starts at
+    the prompt (or reminder) that led to it, not at the first ask.
+    """
     start = ""
     for _line_no, _raw, record in iter_jsonl(path):
         timestamp = str(record.get("timestamp") or "")
@@ -152,6 +154,8 @@ def handoff_start(path: Path, marker_time: str, asked_at: str | None) -> str:
                 and not record_text(record).lstrip().startswith(("<", "# AGENTS.md"))
             ):
                 start = timestamp
+    if asked_at and asked_at <= marker_time and asked_at > start:
+        start = asked_at
     return start or marker_time
 
 
