@@ -131,3 +131,12 @@ def test_logged_jev_holds_are_read_by_session(tmp_path, monkeypatch) -> None:
     auto_handoff.log_decision("s1", 330_000, 300_000, 0.8, "asked")
     grouped = handoff_savings.auto_handoff_decisions()
     assert [entry["decision"] for entry in grouped["s1"]] == ["held", "asked"]
+
+
+def test_a_session_with_two_markers_is_counted_once(tmp_path: Path) -> None:
+    old = claude_session(tmp_path / "old.jsonl", "old", [("2026-10-01T11:00:00Z", 400_000)])
+    claude_session(tmp_path / "new.jsonl", "new", [("2026-10-01T12:00:00Z", 50_000), ("2026-10-01T12:05:00Z", 60_000)])
+    first = marker(old, "old", "2026-10-01T11:01:00Z")
+    corrected = {**marker(old, "old", "2026-10-01T11:01:05Z"), "handoff_file": "/work/project/.reference/handoffs/fixed.md"}
+    rows = project_savings([first, corrected], [old, tmp_path / "new.jsonl"])
+    assert len(rows) == 1 and rows[0]["handoff_file"].endswith("fixed.md")

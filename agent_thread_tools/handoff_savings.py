@@ -203,8 +203,14 @@ def project_savings(markers: list[dict[str, Any]], session_paths: list[Path]) ->
     by_file = {str(item["path"].resolve()): item for item in sessions}
     by_id = {item["identity"]["session_id"]: item for item in sessions}
 
-    rows = []
+    # A session handed off once can carry several markers (one re-recorded to fix a
+    # path, say); count it once, with its latest marker.
+    latest: dict[str, dict[str, Any]] = {}
     for marker in sorted(markers, key=lambda item: item["created_at"]):
+        latest[marker["source_session_id"]] = marker
+
+    rows = []
+    for marker in sorted(latest.values(), key=lambda item: item["created_at"]):
         source = by_file.get(str(Path(marker["source_session_file"]).expanduser().resolve())) or by_id.get(
             marker["source_session_id"]
         )
