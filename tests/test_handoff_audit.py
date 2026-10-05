@@ -112,6 +112,9 @@ def test_jev_key_comes_from_the_key_file(tmp_path: Path, monkeypatch: pytest.Mon
 
 PREVIOUS = """# Old Handoff - 2026-10-04
 
+## Resume Context
+Branch at abc123; plan sections awaiting Rich's yes.
+
 ## Goal / Next Action
 Wait for Rich's device checks (list below).
 1. Volume keys change the spoken reply's loudness (X4).
@@ -136,6 +139,7 @@ def test_open_items_are_read_from_the_previous_handoff() -> None:
     assert "- X4 barge-in unverified on device; Bluetooth follows the headset's call level." in items
     assert any("Current: shipped; device-unverified: X4." in item for item in items)
     assert not any("voice-call stream" in item for item in items)  # a settled decision
+    assert not any("abc123" in item for item in items)  # resume context is state, not open work
 
 
 def test_the_previous_handoff_is_found_through_claude_local_md(tmp_path: Path) -> None:

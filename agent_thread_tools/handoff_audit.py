@@ -31,6 +31,8 @@ OPEN_WORDS = re.compile(
     r"\b(owed|pending|awaiting|waiting (on|for)|needs? .{0,40}\byes\b|proposed|not run|unverified|still open|todo)\b",
     re.IGNORECASE,
 )
+# Sections that record state, not open work; their "awaiting" or "not run" lines are history.
+STATE_SECTION = re.compile(r"resume context|verification|files|references|source session|visual archive", re.IGNORECASE)
 LATEST_HANDOFF = re.compile(r"Latest handoff:\s*@(\S+)")
 SKIPPED_PREFIXES = ("<", "Stop hook", "Base directory", "[Request")
 CODEX_SKIPPED_PREFIXES = ("<", "# AGENTS.md")  # environment context and instruction files
@@ -141,7 +143,7 @@ def open_items(text: str) -> list[str]:
     heading, buffer, bullet = "", [], False
 
     def flush() -> None:
-        if buffer:
+        if buffer and not STATE_SECTION.search(heading):
             item = " ".join(buffer)
             if OPEN_SECTION.search(heading) or OPEN_WORDS.search(item) or item.startswith(("Current:", "Next:")):
                 items.append(item)
