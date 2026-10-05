@@ -233,31 +233,26 @@ def reminder_decision(state_path: Path, session_id: str, tokens: int, limit: int
     handoff = recorded_handoff(session_id)
     if handoff:
         situation = (
-            f"the handoff for this session was saved ({handoff}) at about {asked_tokens:,} tokens, "
-            f"but the session kept going and is now about {tokens:,} tokens, so every request "
-            "resends that much."
+            f"the handoff for this session ({handoff}) was written at about {asked_tokens:,} tokens, "
+            f"but the session kept going and is now about {tokens:,} tokens, so the handoff is out of "
+            "date and every request resends that much."
         )
-        advice = (
-            "End your reply with one short, separate final paragraph telling the user to run "
-            "/clear to continue from the handoff in a fresh session, and that if work done since "
-            "the handoff matters, they can run the thread-handoff skill again first."
-        )
+        task = "update the handoff with the work done since it was written"
     else:
         situation = (
-            f"a handoff was suggested at about {asked_tokens:,} tokens but none was recorded, and "
-            f"the session is now about {tokens:,} tokens, so every request resends that much."
+            f"a handoff was asked for at about {asked_tokens:,} tokens but none was recorded, and the "
+            f"session is now about {tokens:,} tokens, so every request resends that much."
         )
-        advice = (
-            "End your reply with one short, separate final paragraph suggesting the user run the "
-            "thread-handoff skill (/agent-thread-tools:thread-handoff from the plugin, or "
-            "/thread-handoff) and then /clear. If the user said earlier not to hand off, say "
-            "only the session's size in one line."
-        )
+        task = "write the handoff"
     return {
         "decision": "block",
         "reason": (
-            f"agent-thread-tools auto-handoff reminder (shown once): {situation} Do not run any "
-            f"tools or continue other work. {advice}"
+            f"agent-thread-tools auto-handoff reminder (shown once): {situation} Run the "
+            "thread-handoff skill now (/agent-thread-tools:thread-handoff from the plugin, or "
+            f"/thread-handoff) to {task}; don't ask the user to do it. When it is done, end with "
+            "one short, separate final paragraph telling the user the handoff is saved and to run "
+            "/clear to continue from it in a fresh session. If the user said earlier in this "
+            "session not to hand off, skip it and say only the session's size in one line."
         ),
     }
 

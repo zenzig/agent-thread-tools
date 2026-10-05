@@ -280,6 +280,8 @@ def test_reminds_once_when_the_session_keeps_growing_after_the_handoff(
     reminder = stop_decision(event(transcript), "300k")
     assert reminder is not None and reminder["decision"] == "block"
     assert "/clear" in reminder["reason"] and "h.md" in reminder["reason"]
+    # The handoff is out of date by now; Claude refreshes it rather than asking the user to.
+    assert "update the handoff" in reminder["reason"] and "don't ask the user" in reminder["reason"]
     write(transcript, [reply(600_000)])
     assert stop_decision(event(transcript), "300k") is None  # only once
 
@@ -293,4 +295,4 @@ def test_reminder_suggests_the_handoff_when_none_was_written(
     write(transcript, [reply(470_000)])
     reminder = stop_decision(event(transcript), "300k")
     assert reminder is not None and "none was recorded" in reminder["reason"]
-    assert "thread-handoff" in reminder["reason"]
+    assert "write the handoff" in reminder["reason"]

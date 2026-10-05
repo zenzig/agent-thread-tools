@@ -128,8 +128,8 @@ have (a backup is saved as `settings.json.agent-thread-tools.bak`):
   (recorded in `~/.claude/thread-tools/auto-handoff/`), never interrupts a turn that
   is still working, and never repeats itself in a loop. If you keep working instead
   and the session grows by another half of the threshold (from 300k to 450k with
-  `300k`), it reminds you once more: to run `/clear` if the handoff was written, or
-  to write one if it wasn't.
+  `300k`), it asks once more: Claude updates the handoff with the work since (or
+  writes it, if it wasn't written) and tells you to run `/clear`.
 - `PreCompact` runs `agent-thread-tools hook claude-precompact` before any
   compaction. If the project has a `.reference/` folder, it saves a redacted draft
   handoff there first.

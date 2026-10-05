@@ -153,7 +153,7 @@ run on Anthropic's machines, where the tool is not installed.
 After each turn, a hook checks the session's context size. Once it passes the
 threshold (default `250k` tokens, or a share such as `60%`), Claude runs the
 thread-handoff skill and tells you it's saved; you run `/clear` and continue in a small,
-fresh session. It asks once per session, reminds you once more if you keep going, and
+fresh session. It asks once per session, updates the handoff once more if you keep going, and
 waits while background tasks run. This
 saves tokens because every request resends the whole conversation, so rotating early
 keeps every later request small. A second hook saves a redacted draft to
