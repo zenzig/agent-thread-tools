@@ -2,9 +2,7 @@
 
 ## 2.1.1 - 2026-10-06
 
-- Republish 2.1.0 to npm as 2.1.1: npm blocked 2.1.0 as a "previously staged" version
-  with nothing to approve. No code changes.
-- New npm package description and keywords.
+- New npm package description and keywords. No code changes from 2.1.0.
 
 ## 2.1.0 - 2026-10-06
 
