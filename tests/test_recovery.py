@@ -173,7 +173,7 @@ def test_bundle_creates_redacted_external_recovery_artifact(tmp_path: Path) -> N
     project_root = tmp_path / "project"
     output_root = tmp_path / "bundles"
     project_root.mkdir()
-    secret = "sk-" + "very-secret-test-token-1234567890"
+    secret = "sk-" + "EXAMPLE-xxxxxxxxxxxxxxxxxxxx"
     tool_payload = "RAW_TOOL_PAYLOAD_DO_NOT_COPY"
     write_session(
         session,
