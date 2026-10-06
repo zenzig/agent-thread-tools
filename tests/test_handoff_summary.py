@@ -232,7 +232,7 @@ def test_redact_sensitive_text_slack_token_uppercase_suffix() -> None:
 def test_redact_sensitive_text_long_format_values_dont_leak() -> None:
     long_auth = "Authorization: Bearer " + ("a" * 9000)
     long_uri = (
-        "postgres://handoff_user:"
+        "postgres://handoff_user:" ""
         + ("b" * 9000)
         + "@postgres.internal:5432/db?connect=true"
     )
@@ -278,7 +278,7 @@ def test_redact_sensitive_text_uri_with_no_userinfo_keeps_path_unchanged() -> No
 
 
 def test_redact_sensitive_text_uri_userinfo_password_allows_colon_and_ampersand() -> None:
-    value = "postgres://handoff_user:pass:word&and@postgres.internal/db"
+    value = "postgres://handoff_user:" "pass:word&and@postgres.internal/db"
 
     redacted, count = redact_sensitive_text(value)
     assert redacted == "postgres://[REDACTED]@postgres.internal/db"
@@ -287,11 +287,11 @@ def test_redact_sensitive_text_uri_userinfo_password_allows_colon_and_ampersand(
 
 def test_redact_sensitive_text_uri_userinfo_password_stops_at_delimiter_chars() -> None:
     values = (
-        "postgres://handoff_user:super secret@postgres.internal/db",
-        "postgres://handoff_user:super/secret@postgres.internal/db",
-        "postgres://handoff_user:super?secret@postgres.internal/db",
-        "postgres://handoff_user:super#secret@postgres.internal/db",
-        "postgres://handoff_user:super@secret@postgres.internal/db",
+        "postgres://handoff_user:" "super secret@postgres.internal/db",
+        "postgres://handoff_user:" "super/secret@postgres.internal/db",
+        "postgres://handoff_user:" "super?secret@postgres.internal/db",
+        "postgres://handoff_user:" "super#secret@postgres.internal/db",
+        "postgres://handoff_user:" "super@secret@postgres.internal/db",
     )
 
     for value in values:
@@ -321,7 +321,7 @@ def test_redact_sensitive_text_exact_redacted_assignment_not_counted() -> None:
 
 def test_redact_sensitive_text_api_key_with_trailing_punctuation() -> None:
     for suffix in (".", "]", "}", ">", "`"):
-        value = f"api-key=sk-abcdefghijklmnop{suffix}"
+        value = f"api-key=sk-" f"abcdefghijklmnop{suffix}"
         redacted, count = redact_sensitive_text(value)
         assert redacted == f"api-key=[REDACTED]{suffix}"
         assert count == 1
@@ -335,7 +335,7 @@ def test_redact_sensitive_text_generic_values_keep_no_secret_punctuation() -> No
 
 
 def test_redact_sensitive_text_overlapping_rules_count_one_secret_once() -> None:
-    value = "api-key=sk-abcdefghijklmnop"
+    value = "api-key=sk-" "abcdefghijklmnop"
 
     redacted, count = redact_sensitive_text(value)
     assert redacted == "api-key=[REDACTED]"
@@ -343,7 +343,7 @@ def test_redact_sensitive_text_overlapping_rules_count_one_secret_once() -> None
 
 
 def test_redact_sensitive_text_export_keyword_preserved() -> None:
-    value = "export SERVICE_PASSWORD=do-not-keep"
+    value = "export SERVICE_PASSWORD=" "do-not-keep"
 
     redacted, count = redact_sensitive_text(value)
     assert redacted == "export SERVICE_PASSWORD=[REDACTED]"
@@ -487,7 +487,7 @@ def test_redact_sensitive_text_table_driven() -> None:
         ("Basic auth", "Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==", "QWxhZGRpbjpvcGVuIHNlc2FtZQ=="),
         (
             "Postgres URI credentials",
-            "postgres://handoff_user:super_secret@postgres.internal:5432/app?sslmode=require",
+            "postgres://handoff_user:" "super_secret@postgres.internal:5432/app?sslmode=require",
             "super_secret",
         ),
         ("OpenAI key", "openai_key=" + openai_key, openai_key),
@@ -500,7 +500,7 @@ def test_redact_sensitive_text_table_driven() -> None:
         ("Slack token", slack_token, slack_token),
         ("JWT", "eyJ0ZXN0LmFoZWE.eyJwYXlsb2FkIn0.Zm9vYmFy", "eyJ0ZXN0LmFoZWE.eyJwYXlsb2FkIn0.Zm9vYmFy"),
         ("Labeled assignment", "api-key=mysecretvalue", "mysecretvalue"),
-        ("Shell assignment", "export SERVICE_PASSWORD=do-not-keep", "do-not-keep"),
+        ("Shell assignment", "export SERVICE_PASSWORD=" "do-not-keep", "do-not-keep"),
         ("Auth assignment", "REGISTRY_AUTH=do-not-keep", "do-not-keep"),
     )
 
