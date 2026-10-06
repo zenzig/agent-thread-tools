@@ -89,3 +89,24 @@ A session can still become unhealthy because:
 That is why this repo uses health checks, handoffs, and archive tools together.
 A handoff written at a point you choose, then loaded into a fresh session, carries
 the project forward in a form you can read and correct.
+
+## Compaction compared with a handoff
+
+Compaction keeps a session running when its context fills up. It does not carry the
+project forward.
+
+| | 🗜️ Compaction alone | 🌉 With a handoff |
+| --- | --- | --- |
+| **When** | ⚠️ When the context window is nearly full, often mid-task | ✅ Automatically at a threshold you set, at a natural break, or whenever you choose |
+| **Token cost** | ⚠️ Every request resends the whole long conversation until it compacts | ✅ Later requests start from a small, fresh session; `health savings` shows the difference |
+| **What is kept** | ⚠️ A summary the model writes for itself, usually unread | ✅ A handoff file you can read, edit, and correct |
+| **After several rounds** | ⚠️ Summaries of summaries; early decisions blur | ✅ Each handoff is dated and committed, so earlier states stay readable |
+| **Next session** | ⚠️ `/clear` or a new terminal starts with only `CLAUDE.md` and auto memory | ✅ Every new session also loads the latest handoff, through `CLAUDE.local.md` |
+| **Screenshots** | ⚠️ Not carried into the summary | ✅ The ones that matter are copied to `.reference/` with a manifest |
+| **Session file** | ⚠️ Keeps growing on disk | ✅ Health reports its size, compactions, and context use for every project |
+| **Other agents** | ⚠️ The summary exists only inside that Claude session | ✅ The handoff is plain Markdown that Codex or any model can read |
+
+> [!TIP]
+> Use compaction to finish the task in front of you. Use a handoff when a piece of work
+> ends, so the next session starts from a short, checked brief instead of a compressed
+> transcript.

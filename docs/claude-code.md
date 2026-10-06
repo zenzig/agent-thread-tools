@@ -223,3 +223,27 @@ that Claude Code cannot process. See [Recovery](recovery.md).
 Commands that write refuse to touch a session that is open in Claude Code. The
 tool reads the open sessions from `~/.claude/sessions/`, where Claude Code
 records each running session.
+
+## Where it works
+
+Run the commands yourself in any terminal, or stay inside Claude Code: type
+`/agent-thread-tools:thread-handoff` or `/agent-thread-tools:thread-health`, or ask Claude to run a
+command for you. That works in every Claude Code app, as long as the session runs on
+a machine where the plugin or the skills are installed:
+
+<table>
+  <tr>
+    <td align="center" width="25%">🖥️<br><strong>Terminal</strong><br><sub>The <code>claude</code> CLI.</sub></td>
+    <td align="center" width="25%">🧩<br><strong>IDE</strong><br><sub>VS Code and JetBrains extensions.</sub></td>
+    <td align="center" width="25%">💻<br><strong>Desktop app</strong><br><sub>Mac and Windows.</sub></td>
+    <td align="center" width="25%">📱<br><strong>Mobile and web</strong><br><sub>Through Remote Control of a session on your machine.</sub></td>
+  </tr>
+</table>
+
+![The Claude mobile app's slash-command menu, with /thread-handoff listed first](../assets/thread-handoff-mobile.png)
+
+*`/thread-handoff` (installed with `install-skill`) in the Claude mobile app, controlling
+a session on a server through Remote Control.*
+
+Cloud sessions started from claude.ai/code or the mobile app without Remote Control
+run on Anthropic's machines, where the tool is not installed.

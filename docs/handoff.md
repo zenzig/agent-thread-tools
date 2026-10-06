@@ -68,6 +68,8 @@ If the skill is unavailable, stop and report that it must be installed.
 The Codex handoff also contains the exact prompt to paste into the new thread,
 including the marker block that connects the new thread to the old one.
 
+📖 Background on why Codex sessions get too big to open: [The Thread That Ate Itself](https://medium.com/@atomicfalls/the-thread-that-ate-itself-what-happens-when-your-codex-session-gets-too-big-to-open-5ee559f263f3).
+
 ## Handoff Summary Draft
 
 To generate a read-only, redacted summary draft for one session:
@@ -149,3 +151,21 @@ thread with the right project context.
 You can use both together. Use Codex remote handoff for host placement. Use
 `agent-thread-tools` for session health, repo-backed continuity, and safer
 session rotation.
+
+## What a Handoff Leaves Behind
+
+```text
+your-project/
+├── CLAUDE.md                 stable facts: architecture, conventions, commands
+├── CLAUDE.local.md           points to the latest handoff; loaded every session
+└── .reference/               local git repository, never pushed
+    ├── INDEX.md              one line per saved document or screenshot set
+    ├── handoffs/             one dated handoff per session, e.g. 2026-09-24-login-flow.md
+    ├── docs/                 long pasted specs worth keeping
+    └── visual-artifacts/<project>/<set>/   archived screenshots and their manifest
+```
+
+A handoff records the goal and next action, the current state, the decisions made and
+why, the files involved, what was tested, and the open risks. `.reference/` and
+`CLAUDE.local.md` are listed in the project's `.git/info/exclude`, so your project
+repository ignores them and no tracked file changes.

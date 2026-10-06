@@ -19,6 +19,8 @@ release process.
 | [Visual archive](visual-archive.md) | You want verified copies of screenshots and videos outside an oversized session. |
 | [Recovery](recovery.md) | You need a safe diagnosis, a repair, or an external recovery bundle for a damaged or oversized session. |
 | [Compaction](compaction.md) | You want to understand how compaction differs from handoffs and archives. |
+| [Token savings](token-savings.md) | You want to know how handoffs extend plan usage limits and how the savings are measured. |
+| [Commands](commands.md) | You want every command in one table, including archives and recovery. |
 
 ## Maintainer Guides
 

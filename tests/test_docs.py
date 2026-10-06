@@ -21,6 +21,8 @@ PUBLIC_DOCS = [
     "visual-archive.md",
     "recovery.md",
     "compaction.md",
+    "token-savings.md",
+    "commands.md",
     "publishing.md",
     "development.md",
 ]
@@ -31,7 +33,7 @@ def test_root_readme_is_concise_and_links_docs_index() -> None:
     text = readme.read_text(encoding="utf-8")
     non_blank_lines = [line for line in text.splitlines() if line.strip()]
 
-    assert len(non_blank_lines) <= 300
+    assert len(non_blank_lines) <= 100
     assert "[Documentation](docs/README.md)" in text
     assert re.search(r"^## .*Documentation$", text, re.MULTILINE)
     assert '<a href="CHANGELOG.md">Changelog</a>' in text
@@ -81,14 +83,9 @@ def test_readme_is_a_concise_open_source_project_overview() -> None:
     }
 
     for heading in (
-        "what's in the box",
-        "why not just let claude code compact?",
-        "quick start (claude code)",
-        "what a handoff leaves behind",
-        "reading the health report",
-        "commands",
-        "codex",
-        "remote health",
+        "powered by jev, optional",
+        "two commands",
+        "what it runs and sends",
         "documentation",
         "project",
     ):
@@ -98,26 +95,29 @@ def test_readme_is_a_concise_open_source_project_overview() -> None:
         "docs/installation.md",
         "docs/health.md",
         "docs/handoff.md",
+        "docs/token-savings.md",
+        "docs/commands.md",
+        "PRIVACY.md",
         "SECURITY.md",
         "LICENSE",
         "https://github.com/zenzig/agent-thread-tools/issues",
     ):
         assert link in text
+    assert "/plugin install agent-thread-tools@agent-thread-tools" in text
     assert "npm install -g agent-thread-tools" in text
-    assert "agent-thread-tools health remote" in text
-    assert "user@example-host" in text
-    assert "/srv/project" in text
+    assert "OpenRouter" in text  # the directory requires disclosing where data goes
     assert "user@remote-host" not in text
-    assert "/path/to/project" not in text
-    assert "NVM" in text
-    assert text.count(MEDIUM_ARTICLE_URL) == 1
-    assert len(text.splitlines()) <= 360
+    assert len(text.splitlines()) <= 120
 
 
-def test_root_readme_lists_remote_health_command() -> None:
-    text = (ROOT / "README.md").read_text(encoding="utf-8")
-
-    assert "health remote --host" in text
+def test_detail_moved_out_of_the_readme_is_in_the_docs() -> None:
+    handoff = (DOCS / "handoff.md").read_text(encoding="utf-8")
+    health = (DOCS / "health.md").read_text(encoding="utf-8")
+    assert handoff.count(MEDIUM_ARTICLE_URL) == 1
+    assert "health remote --host" in health
+    assert "NVM" in health
+    assert "### Where it works" in (DOCS / "claude-code.md").read_text(encoding="utf-8") or "## Where it works" in (DOCS / "claude-code.md").read_text(encoding="utf-8")
+    assert "## What runs, reads, and sends" in (ROOT / "PRIVACY.md").read_text(encoding="utf-8")
 
 
 def test_public_docs_index_links_all_detail_pages() -> None:
@@ -210,7 +210,7 @@ def test_archive_force_modes_document_staged_replacement_limits() -> None:
 
 
 def test_archive_safety_behavior_is_documented() -> None:
-    readme_text = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme_text = (DOCS / "commands.md").read_text(encoding="utf-8")
     index_text = (DOCS / "README.md").read_text(encoding="utf-8")
     session_text = (DOCS / "session-archive.md").read_text(encoding="utf-8")
     visual_text = (DOCS / "visual-archive.md").read_text(encoding="utf-8")

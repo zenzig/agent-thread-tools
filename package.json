@@ -30,13 +30,17 @@
     "skills/thread-handoff/SKILL.md",
     "skills/thread-handoff/references/*.md",
     "skills/thread-health/SKILL.md",
-    "assets/agent-thread-tools-header.png",
+    "assets/forever-thread.jpg",
+    "assets/icons/*.svg",
     "assets/usage-limits.svg",
     "README.md",
     "CHANGELOG.md",
     "SECURITY.md",
     "VERSION",
-    "LICENSE"
+    "LICENSE",
+    "docs/commands.md",
+    "docs/token-savings.md",
+    "PRIVACY.md"
   ],
   "scripts": {
     "test": "python3 -m pytest",
