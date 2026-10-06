@@ -38,7 +38,7 @@ def test_package_metadata_is_publish_ready() -> None:
     ).strip()
     assert (
         package["description"]
-        == "CLI health checks, handoffs, session archives, visual archives, and recovery tools for OpenAI Codex and Claude Code session threads."
+        == "One forever thread per project: automatic handoffs for Claude Code and Codex sessions that cut long-session tokens by 30-40%, with health checks, handoff audits, and savings reports."
     )
     assert package["author"] == "Rich Olson"
     assert package["bin"]["agent-thread-tools"] == "cli/agent-thread-tools.js"

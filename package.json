@@ -1,7 +1,7 @@
 {
   "name": "agent-thread-tools",
-  "version": "2.1.0",
-  "description": "CLI health checks, handoffs, session archives, visual archives, and recovery tools for OpenAI Codex and Claude Code session threads.",
+  "version": "2.1.1",
+  "description": "One forever thread per project: automatic handoffs for Claude Code and Codex sessions that cut long-session tokens by 30-40%, with health checks, handoff audits, and savings reports.",
   "license": "MIT",
   "author": "Rich Olson",
   "type": "commonjs",
@@ -64,7 +64,10 @@
     "compaction",
     "session-jsonl",
     "developer-tools",
-    "cli"
+    "cli",
+    "plugin",
+    "context",
+    "tokens"
   ],
   "homepage": "https://github.com/zenzig/agent-thread-tools#readme",
   "repository": {

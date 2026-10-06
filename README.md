@@ -84,7 +84,7 @@ All guides: [Documentation](docs/README.md).
 ## 📋 Project
 
 <table>
-  <tr><td>🏷️ <strong>Version</strong></td><td><code>2.1.0</code> · <a href="CHANGELOG.md">Changelog</a> · formerly <code>codex-thread-tools</code></td></tr>
+  <tr><td>🏷️ <strong>Version</strong></td><td><code>2.1.1</code> · <a href="CHANGELOG.md">Changelog</a> · formerly <code>codex-thread-tools</code></td></tr>
   <tr><td>🐛 <strong>Issues</strong></td><td><a href="https://github.com/zenzig/agent-thread-tools/issues">Report a bug or request a feature</a></td></tr>
   <tr><td>🔒 <strong>Security</strong></td><td>Read the <a href="SECURITY.md">security policy</a> before reporting a vulnerability</td></tr>
   <tr><td>⚖️ <strong>License</strong></td><td><a href="LICENSE">MIT</a></td></tr>
