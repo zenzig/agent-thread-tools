@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.0 - Unreleased
+## 2.1.0 - 2026-10-06
 
 - Add automatic handoff for Claude Code:
   `install-skill --agent claude --auto-handoff [--at auto]` installs a `Stop` hook
