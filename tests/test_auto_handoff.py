@@ -14,7 +14,7 @@ from agent_thread_tools.auto_handoff import latest_context_tokens, parse_thresho
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def reply(context: int, **fields: object) -> dict[str, object]:
+def reply(context: int, model: str = "claude-opus-5-5", **fields: object) -> dict[str, object]:
     return {
         "type": "assistant",
         "sessionId": "s1",
@@ -22,7 +22,7 @@ def reply(context: int, **fields: object) -> dict[str, object]:
         "timestamp": "2026-09-30T10:00:00.000Z",
         "message": {
             "role": "assistant",
-            "model": "claude-opus-5-5",
+            "model": model,
             "content": [{"type": "text", "text": "Done."}],
             "usage": {
                 "input_tokens": 10,
@@ -87,9 +87,11 @@ def test_past_threshold_asks_for_a_handoff_once(tmp_path: Path) -> None:
     assert stop_decision(event(transcript), "150k") is None
 
 
-def test_percent_threshold_uses_the_context_window(tmp_path: Path) -> None:
-    transcript = write(tmp_path / "s1.jsonl", [reply(130_000)])
-    assert stop_decision(event(transcript), "60%") is not None  # 60% of 200k
+def test_percent_threshold_uses_the_models_context_window(tmp_path: Path) -> None:
+    older = write(tmp_path / "s1.jsonl", [reply(130_000, model="claude-sonnet-4-5")])
+    assert stop_decision(event(older), "60%") is not None  # 60% of 200k
+    current = write(tmp_path / "s2.jsonl", [reply(130_000)])
+    assert stop_decision(event(current, session_id="s2"), "60%") is None  # Claude 5: 60% of 1M
 
 
 @pytest.mark.parametrize(
@@ -102,7 +104,7 @@ def test_percent_threshold_uses_the_context_window(tmp_path: Path) -> None:
     ],
 )
 def test_loops_unfinished_turns_and_bad_events_are_left_alone(tmp_path: Path, fields) -> None:
-    transcript = write(tmp_path / "s1.jsonl", [reply(900_000)])
+    transcript = write(tmp_path / "s1.jsonl", [reply(200_000)])
     assert stop_decision(event(transcript, **fields), "150k") is None
 
 
@@ -296,3 +298,37 @@ def test_reminder_suggests_the_handoff_when_none_was_written(
     reminder = stop_decision(event(transcript), "300k")
     assert reminder is not None and "none was recorded" in reminder["reason"]
     assert "write the handoff" in reminder["reason"]
+
+
+def test_background_work_delays_the_ask_only_up_to_the_hard_limit(tmp_path: Path) -> None:
+    running = {"background_tasks": [{"id": "b1", "status": "running"}]}
+    transcript = write(tmp_path / "s1.jsonl", [reply(320_000)])
+    assert stop_decision(event(transcript, **running), "300k") is None
+    decisions = [json.loads(line) for line in auto_handoff.decisions_file().read_text().splitlines()]
+    assert decisions[-1]["decision"] == "waited-for-background-tasks"
+    write(transcript, [reply(460_000)])  # past 1.5 times the threshold
+    decision = stop_decision(event(transcript, **running), "300k")
+    assert decision is not None and "Background tasks are still running" in decision["reason"]
+
+
+def test_auto_threshold_is_300k_or_half_the_window(tmp_path: Path) -> None:
+    from agent_thread_tools.auto_handoff import threshold_tokens
+
+    assert auto_handoff.DEFAULT_THRESHOLD == "auto"
+    assert threshold_tokens("auto", 1_000_000) == 300_000
+    assert threshold_tokens("auto", 200_000) == 100_000
+    assert threshold_tokens("250k", 200_000) == 250_000
+    assert threshold_tokens("60%", 200_000) == 120_000
+    older = write(tmp_path / "s1.jsonl", [reply(110_000, model="claude-sonnet-4-5")])
+    assert stop_decision(event(older), "auto") is not None  # past 100k of a 200k window
+    current = write(tmp_path / "s2.jsonl", [reply(110_000)])
+    assert stop_decision(event(current, session_id="s2"), "auto") is None  # 300k on Claude 5
+
+
+def test_configured_threshold_falls_back_on_a_bad_value(monkeypatch: pytest.MonkeyPatch) -> None:
+    from agent_thread_tools.auto_handoff import configured_threshold
+
+    monkeypatch.setenv("AGENT_THREAD_AUTO_HANDOFF_AT", "lots")
+    assert configured_threshold() == "auto"
+    monkeypatch.setenv("AGENT_THREAD_AUTO_HANDOFF_AT", "300k")
+    assert configured_threshold() == "300k"

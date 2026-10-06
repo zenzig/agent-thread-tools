@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import textwrap
 from pathlib import Path
@@ -204,7 +205,27 @@ def scale_lines(
             f"  Context: {format_count(active)} of {format_count(window)} tokens "
             f"({round(100 * active / window)}%)"
         )
+        handoff_line = auto_handoff_line(item, window)
+        if handoff_line:
+            lines.append(handoff_line)
     return lines
+
+
+def auto_handoff_line(item: dict[str, Any], window: int) -> str:
+    """Where automatic handoff triggers for this session (Claude Code only)."""
+    from agent_thread_tools.auto_handoff import DISABLE_ENV, configured_threshold, threshold_tokens
+    from agent_thread_tools.sessionlib import session_agent
+
+    path = item.get("file")
+    try:
+        if not isinstance(path, str) or session_agent(Path(path)) != "claude":
+            return ""
+    except OSError:
+        return ""
+    if os.environ.get(DISABLE_ENV, "").lower() in {"0", "off", "false", "no"}:
+        return "  Automatic handoff: off"
+    threshold = configured_threshold()
+    return f"  Automatic handoff at: {format_count(threshold_tokens(threshold, window))} tokens ({threshold})"
 
 
 def notice_lines(item: dict[str, Any]) -> list[str]:

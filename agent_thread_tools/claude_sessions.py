@@ -133,7 +133,7 @@ class ClaudeTranslator:
         usage = message.get("usage")
         message_id = message.get("id")
         if isinstance(usage, dict) and message.get("model") != "<synthetic>":
-            token_event = self._token_event(usage, message_id, ts)
+            token_event = self._token_event(usage, message_id, ts, str(message.get("model") or ""))
             if token_event:
                 out.append(token_event)
         return out
@@ -155,7 +155,7 @@ class ClaudeTranslator:
         return []
 
     def _token_event(
-        self, usage: dict[str, Any], message_id: Any, ts: str
+        self, usage: dict[str, Any], message_id: Any, ts: str, model: str = ""
     ) -> dict[str, Any] | None:
         fresh = _int(usage.get("input_tokens")) + _int(usage.get("cache_creation_input_tokens"))
         cached = _int(usage.get("cache_read_input_tokens"))
@@ -167,8 +167,7 @@ class ClaudeTranslator:
             if message_id in self.seen_message_ids:
                 return None
             self.seen_message_ids.add(message_id)
-        if active > self.context_window and _configured_context_window() == DEFAULT_CONTEXT_WINDOW:
-            self.context_window = EXTENDED_CONTEXT_WINDOW
+        self.context_window = max(self.context_window, model_context_window(model, active))
         self.cumulative["input_tokens"] += fresh + cached
         self.cumulative["cached_input_tokens"] += cached
         self.cumulative["output_tokens"] += output
@@ -251,3 +250,19 @@ def _configured_context_window() -> int:
     except ValueError:
         return DEFAULT_CONTEXT_WINDOW
     return value if value > 0 else DEFAULT_CONTEXT_WINDOW
+
+
+# Claude Code doesn't record the window in the transcript, so it is inferred from the
+# model: the Claude 5 family runs with a 1M window in Claude Code, older models with
+# 200k, and a "[1m]" suffix always means 1M. CLAUDE_CONTEXT_WINDOW overrides it.
+EXTENDED_MODEL_PREFIXES = ("claude-fable-5", "claude-opus-5", "claude-sonnet-5")
+
+
+def model_context_window(model: str | None, tokens: int = 0) -> int:
+    """The context window for a model, at least large enough to hold ``tokens``."""
+    if os.environ.get("CLAUDE_CONTEXT_WINDOW", "").strip():
+        return _configured_context_window()
+    name = (model or "").lower()
+    if "[1m]" in name or name.startswith(EXTENDED_MODEL_PREFIXES) or tokens > DEFAULT_CONTEXT_WINDOW:
+        return EXTENDED_CONTEXT_WINDOW
+    return DEFAULT_CONTEXT_WINDOW

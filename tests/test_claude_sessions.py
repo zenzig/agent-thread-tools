@@ -91,7 +91,8 @@ def run_tool(*args: str, env: dict[str, str] | None = None) -> subprocess.Comple
     )
 
 
-def test_health_check_reads_claude_code_session(tmp_path: Path) -> None:
+def test_health_check_reads_claude_code_session(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("CLAUDE_CONTEXT_WINDOW", "200000")  # the limits check, at a 200k window
     session = write_session(tmp_path / "-work-claude-project" / "claude-session-1.jsonl")
 
     result = run_tool("tools/agent-thread-health.py", "check", str(session), "--json")
@@ -189,3 +190,15 @@ def test_reference_init_and_commit_stay_local(tmp_path: Path) -> None:
         ["git", "log", "--format=%s"], cwd=project / ".reference", text=True, capture_output=True
     )
     assert log.stdout.strip() == "Add spec"
+
+
+def test_context_window_follows_the_model(monkeypatch) -> None:
+    from agent_thread_tools.claude_sessions import model_context_window
+
+    monkeypatch.delenv("CLAUDE_CONTEXT_WINDOW", raising=False)
+    assert model_context_window("claude-fable-5-1") == 1_000_000
+    assert model_context_window("claude-opus-5-5[1m]") == 1_000_000
+    assert model_context_window("claude-haiku-4-5-20251001") == 200_000
+    assert model_context_window("claude-haiku-4-5-20251001", 250_000) == 1_000_000
+    monkeypatch.setenv("CLAUDE_CONTEXT_WINDOW", "400000")
+    assert model_context_window("claude-fable-5-1") == 400_000

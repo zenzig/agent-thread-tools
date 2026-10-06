@@ -3,7 +3,7 @@
 ## 2.1.0 - Unreleased
 
 - Add automatic handoff for Claude Code:
-  `install-skill --agent claude --auto-handoff [--at 250k]` installs a `Stop` hook
+  `install-skill --agent claude --auto-handoff [--at auto]` installs a `Stop` hook
   that asks Claude to run `/thread-handoff` once the session's context passes the
   threshold, and a `PreCompact` hook that saves a redacted draft handoff to
   `.reference/handoffs/` before compaction. `--no-auto-handoff` removes both, and
@@ -46,6 +46,15 @@
   checks, pending decisions, proposals, risks), and `handoff-audit` lists any open item
   of the previous handoff that the new one leaves out (`--previous`, `--no-previous`).
 - Jev requests retry on rate limits and server errors, with a short backoff.
+- The automatic handoff threshold defaults to `auto` (was `250k`): 300k on a
+  1M-context model, half the window on a smaller one (100k of 200k). `health check`
+  prints where it triggers (`Automatic handoff at:`).
+- The context window is taken from the model (1M for the Claude 5 family and `[1m]`
+  models, 200k for older ones) instead of assuming 200k until a session passes it, so
+  health and `/thread-health` no longer report a Claude 5 session as nearly full.
+- While background tasks run, the auto-handoff hook waits only up to 1.5 times the
+  threshold, then asks anyway, telling Claude to let the work finish first; each wait
+  is logged.
 - Add `health savings`, which estimates the tokens each recorded handoff saved
   (counterfactual: the old session's final size carried forward until it would
   have compacted), minus the handoff's own overhead, raw and price-weighted.

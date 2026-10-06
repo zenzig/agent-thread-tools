@@ -23,7 +23,7 @@ const PYTHON_TOOLS = new Map([
 ]);
 
 const HOOK_COMMAND = "agent-thread-tools hook";
-const THRESHOLD_PATTERN = /^\d+(\.\d+)?\s*[km]?$|^\d+(\.\d+)?\s*%$/i;
+const THRESHOLD_PATTERN = /^\d+(\.\d+)?\s*[km]?$|^\d+(\.\d+)?\s*%$|^auto$/i;
 
 const HELP = `agent-thread-tools ${VERSION}
 
@@ -38,7 +38,7 @@ Usage:
   agent-thread-tools recover [args...]
   agent-thread-tools reference init|commit [--project DIR] [-m MESSAGE]
   agent-thread-tools install-skill [--agent codex|claude]
-  agent-thread-tools install-skill --agent claude --auto-handoff [--at 250k]
+  agent-thread-tools install-skill --agent claude --auto-handoff [--at auto|300k|60%]
   agent-thread-tools install-skill --agent claude --no-auto-handoff
   agent-thread-tools --version
 
@@ -76,7 +76,7 @@ function main(argv) {
       return installed;
     }
     if (args.includes("--auto-handoff")) {
-      return configureAutoHandoff(optionValue(args, "--at") || "250k");
+      return configureAutoHandoff(optionValue(args, "--at") || "auto");
     }
     if (args.includes("--no-auto-handoff")) {
       return configureAutoHandoff(null);
@@ -148,7 +148,7 @@ function optionValue(args, name) {
 // leaving every other setting and hook untouched.
 function configureAutoHandoff(threshold) {
   if (threshold !== null && !THRESHOLD_PATTERN.test(threshold.trim())) {
-    process.stderr.write("--at must look like 150k, 150000, 1m, or 60%\n");
+    process.stderr.write("--at must look like auto, 150k, 150000, 1m, or 60%\n");
     return 1;
   }
   const settingsFile = path.join(os.homedir(), ".claude", "settings.json");
@@ -196,7 +196,11 @@ function configureAutoHandoff(threshold) {
   fs.writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`);
   process.stdout.write(
     threshold !== null
-      ? `\nAuto-handoff is on: after a turn ends with the context past ${threshold.trim()} tokens, ` +
+      ? `\nAuto-handoff is on: after a turn ends with the context past ${
+          threshold.trim().toLowerCase() === "auto"
+            ? "300k tokens (half the context window on smaller models)"
+            : `${threshold.trim()} tokens`
+        }, ` +
           "Claude runs /thread-handoff once and asks you to run /clear.\n" +
           "Sessions started from now on use it; restart a running session. Turn it off with: " +
           "agent-thread-tools install-skill --agent claude --no-auto-handoff\n"

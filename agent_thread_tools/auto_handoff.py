@@ -17,7 +17,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-DEFAULT_THRESHOLD = "250k"
+from agent_thread_tools.claude_sessions import model_context_window
+
+DEFAULT_THRESHOLD = "auto"
+# "auto": 300k on a 1M-context model; on a smaller window, half of it (100k of 200k),
+# still well before Claude Code would compact.
+AUTO_CAP = 300_000
+AUTO_SHARE = 0.5
 # With Jev available, hand off at the first natural break past the threshold, or at
 # 1.5 times the threshold regardless.
 NATURAL_BREAK_MIN = 0.6
@@ -47,8 +53,11 @@ DISABLE_ENV = "AGENT_THREAD_AUTO_HANDOFF"
 
 
 def parse_threshold(value: str) -> tuple[int | None, float | None]:
-    """``150k``, ``150000`` or ``1m`` give tokens; ``60%`` gives a share of the window."""
+    """``150k``, ``150000`` or ``1m`` give tokens; ``60%`` gives a share of the window;
+    ``auto`` gives (None, None), resolved against the window by ``threshold_tokens``."""
     text = value.strip().lower()
+    if text == "auto":
+        return None, None
     match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*%", text)
     if match:
         return None, float(match.group(1)) / 100
@@ -59,8 +68,35 @@ def parse_threshold(value: str) -> tuple[int | None, float | None]:
     return int(float(match.group(1)) * scale), None
 
 
+def threshold_tokens(value: str, window: int) -> int:
+    """The handoff threshold in tokens for a session with this context window."""
+    limit, share = parse_threshold(value)
+    if limit is not None:
+        return limit
+    if share is not None:
+        return int(window * share)
+    return min(AUTO_CAP, int(window * AUTO_SHARE))
+
+
+def configured_threshold() -> str:
+    """AGENT_THREAD_AUTO_HANDOFF_AT when it is valid, else the default."""
+    value = os.environ.get("AGENT_THREAD_AUTO_HANDOFF_AT", "").strip()
+    if value:
+        try:
+            parse_threshold(value)
+            return value
+        except ValueError:
+            pass
+    return DEFAULT_THRESHOLD
+
+
 def latest_context_tokens(transcript: Path) -> int | None:
     """Context size of the latest main-thread reply, read from the end of the file."""
+    return latest_reply(transcript)[0]
+
+
+def latest_reply(transcript: Path) -> tuple[int | None, str]:
+    """(context size, model) of the latest main-thread reply, read from the end of the file."""
     size = transcript.stat().st_size
     with transcript.open("rb") as handle:
         handle.seek(max(0, size - TAIL_BYTES))
@@ -86,15 +122,13 @@ def latest_context_tokens(transcript: Path) -> int | None:
             "cache_read_input_tokens",
             "output_tokens",
         )
-        return sum(value for value in (usage.get(key) for key in keys) if isinstance(value, int))
-    return None
+        tokens = sum(value for value in (usage.get(key) for key in keys) if isinstance(value, int))
+        return tokens, str(message.get("model") or "")
+    return None, ""
 
 
-def context_window(tokens: int) -> int:
-    configured = os.environ.get("CLAUDE_CONTEXT_WINDOW", "")
-    if configured.isdigit():
-        return int(configured)
-    return 1_000_000 if tokens > 200_000 else 200_000
+def context_window(tokens: int, model: str = "") -> int:
+    return model_context_window(model, tokens)
 
 
 def decisions_file() -> Path:
@@ -135,9 +169,6 @@ def stop_decision(event: dict[str, Any], threshold: str) -> dict[str, Any] | Non
         return None
     if event.get("stop_hook_active"):
         return None
-    if event.get("background_tasks"):
-        # Work is still running; ask after it finishes so the handoff records the result.
-        return None
     stop_reason = event.get("stop_reason")
     if stop_reason not in (None, "", "end_turn"):
         return None
@@ -148,16 +179,20 @@ def stop_decision(event: dict[str, Any], threshold: str) -> dict[str, Any] | Non
     path = Path(transcript).expanduser()
     if not path.is_file():
         return None
-    tokens = latest_context_tokens(path)
+    tokens, model = latest_reply(path)
     if tokens is None:
         return None
-    limit, share = parse_threshold(threshold)
-    window = context_window(tokens)
-    if limit is None:
-        limit = int(window * (share or 0))
+    limit = threshold_tokens(threshold, context_window(tokens, model))
     if tokens < limit:
         return None
     marker = state_file(session_id)
+    running = bool(event.get("background_tasks"))
+    if running and (marker.exists() or tokens < limit * HARD_LIMIT_FACTOR):
+        # Work is still running; ask after it finishes so the handoff records the result.
+        # Back-to-back jobs can keep this up for hours, so past the hard limit it asks anyway.
+        if not marker.exists():
+            log_decision(session_id, tokens, limit, None, "waited-for-background-tasks")
+        return None
     if marker.exists():
         # Asked once already; the user may choose to keep going. Remind once if it keeps growing.
         return reminder_decision(marker, session_id, tokens, limit)
@@ -187,12 +222,18 @@ def stop_decision(event: dict[str, Any], threshold: str) -> dict[str, Any] | Non
         encoding="utf-8",
     )
     moment = " and this is a natural break" if natural_break is not None else ""
+    wait = (
+        " Background tasks are still running: let them finish and record their results in the "
+        "handoff before you write it."
+        if running
+        else ""
+    )
     return {
         "decision": "block",
         "reason": (
             f"agent-thread-tools auto-handoff: this session's context is about "
             f"{tokens:,} tokens, past the {limit:,}-token threshold{moment}, so every further "
-            "request resends that much. Run the thread-handoff skill now (/agent-thread-tools:thread-handoff "
+            f"request resends that much.{wait} Run the thread-handoff skill now (/agent-thread-tools:thread-handoff "
             "from the plugin, or /thread-handoff) to write the handoff. When it is done, tell the user in one short paragraph that the "
             "handoff is saved and that running /clear continues from it in a fresh, "
             "smaller session. If the user asked earlier in this session not to hand "

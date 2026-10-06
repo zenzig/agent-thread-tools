@@ -32,8 +32,10 @@ What is measured for Claude Code:
 | Context use | the latest reply's input, cache, and output tokens against the context window |
 | Visuals | pasted and tool-result images, which Claude Code embeds as base64 |
 
-The context window is 200,000 tokens unless a reply or compaction in the session
-exceeds it, in which case 1,000,000 is assumed. Set `CLAUDE_CONTEXT_WINDOW` to fix it.
+Claude Code doesn't record the context window in the session file, so it is taken
+from the model: 1,000,000 tokens for the Claude 5 family (Fable, Opus, and Sonnet 5.x)
+and any model marked `[1m]`, 200,000 for older models, and 1,000,000 for any session
+that has gone past 200,000. Set `CLAUDE_CONTEXT_WINDOW` (in tokens) if yours differs.
 
 ## Handoff skill
 
@@ -97,7 +99,8 @@ skills are named after the plugin, so these are not `/thread-handoff` and
 `/thread-health`; typing `/thread` in the slash-command menu lists them. Restart a
 session that was open during the install to load them. It needs Python 3
 on the machine where Claude Code runs. Set the threshold with
-`AGENT_THREAD_AUTO_HANDOFF_AT` (default `250k`), for example in the `env` section of
+`AGENT_THREAD_AUTO_HANDOFF_AT` (default `auto`: 300k on a 1M-context model, half the
+window on a smaller one; or a value such as `250k` or `60%`), for example in the `env` section of
 `~/.claude/settings.json`; `AGENT_THREAD_AUTO_HANDOFF=off` turns the hooks off.
 Plugins from your own marketplaces don't update automatically unless you turn that on
 in `/plugin`, under Marketplaces.
@@ -111,24 +114,26 @@ plugins.
 ## Automatic handoff
 
 ```bash
-agent-thread-tools install-skill --agent claude --auto-handoff --at 250k
+agent-thread-tools install-skill --agent claude --auto-handoff   # or --at 250k, --at 60%
 ```
 
 Without the plugin, this adds two hooks to `~/.claude/settings.json`, next to any hooks you already
 have (a backup is saved as `settings.json.agent-thread-tools.bak`):
 
-- `Stop` runs `agent-thread-tools hook claude-stop --at 250k` after each turn. It
+- `Stop` runs `agent-thread-tools hook claude-stop --at auto` after each turn. It
   reads the context size of the latest reply from the end of the session file
   (Claude Code writes a reply to the file just after the hook runs, so this is the
   size as of the previous reply). While background tasks are still running, it
-  waits and asks after they finish, so the handoff records the finished result. The
+  waits and asks after they finish, so the handoff records the finished result; each
+  wait is logged. Back-to-back jobs can keep that up for hours, so past 1.5 times the
+  threshold it asks anyway and tells Claude to let the running work finish first. The
   first time a finished turn is past the threshold, it asks Claude to run
   the thread-handoff skill (`/agent-thread-tools:thread-handoff` with the plugin, `/thread-handoff`
   with `install-skill`) and to tell you to run `/clear`. It asks once per session
   (recorded in `~/.claude/thread-tools/auto-handoff/`), never interrupts a turn that
   is still working, and never repeats itself in a loop. If you keep working instead
-  and the session grows by another half of the threshold (from 300k to 450k with
-  `300k`), it asks once more: Claude updates the handoff with the work since (or
+  and the session grows by another half of the threshold (from 300k to 450k on a
+  1M-context model), it asks once more: Claude updates the handoff with the work since (or
   writes it, if it wasn't written) and tells you to run `/clear`.
 - `PreCompact` runs `agent-thread-tools hook claude-precompact` before any
   compaction. If the project has a `.reference/` folder, it saves a redacted draft

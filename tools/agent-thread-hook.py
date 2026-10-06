@@ -15,6 +15,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from agent_thread_tools.auto_handoff import (
     DEFAULT_THRESHOLD,
+    configured_threshold,
     parse_threshold,
     precompact_draft,
     stop_decision,
@@ -40,19 +41,16 @@ def main(argv: list[str] | None = None) -> int:
     stop.add_argument(
         "--at",
         default=None,
-        help="context size that triggers a handoff, e.g. 150k or 60%% (default: "
-        f"$AGENT_THREAD_AUTO_HANDOFF_AT, else {DEFAULT_THRESHOLD})",
+        help="context size that triggers a handoff, e.g. 150k, 60%%, or auto (default: "
+        f"$AGENT_THREAD_AUTO_HANDOFF_AT, else {DEFAULT_THRESHOLD}: 300k, or half the "
+        "context window when that is smaller)",
     )
     sub.add_parser("claude-precompact", help="PreCompact hook: save a handoff draft first")
     args = parser.parse_args(argv)
     if args.command == "claude-stop":
         if args.at is None:
             # The plugin's hook has no --at; users set the threshold in their environment.
-            args.at = os.environ.get("AGENT_THREAD_AUTO_HANDOFF_AT") or DEFAULT_THRESHOLD
-            try:
-                parse_threshold(args.at)
-            except ValueError:
-                args.at = DEFAULT_THRESHOLD
+            args.at = configured_threshold()
         else:
             parse_threshold(args.at)  # reject a bad threshold at install time, loudly
     event = read_event()

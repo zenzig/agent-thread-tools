@@ -36,7 +36,7 @@ that the next session loads automatically.
   <tr>
     <td align="center" width="33%">🩺<br><strong>Health checks</strong><br><sub>Scores every session's size, compactions, context use, and screenshots, then says continue, monitor, or hand off.</sub></td>
     <td align="center" width="33%">🌉<br><strong>Handoffs</strong><br><sub>The <code>thread-handoff</code> skill writes a short, reviewed brief that the next session loads on its own.</sub></td>
-    <td align="center" width="33%">⏱️<br><strong>Automatic handoff</strong><br><sub>A plugin hook starts the handoff once a session passes 250k tokens, before compaction does.</sub></td>
+    <td align="center" width="33%">⏱️<br><strong>Automatic handoff</strong><br><sub>A plugin hook starts the handoff once a session passes 300k tokens (half the window on smaller models), before compaction does.</sub></td>
   </tr>
   <tr>
     <td align="center" width="33%">💰<br><strong>Token savings</strong><br><sub><code>health savings</code> estimates the tokens each handoff saved, and the <code>thread-health</code> skill shows it in chat.</sub></td>
@@ -151,7 +151,8 @@ run on Anthropic's machines, where the tool is not installed.
 ### Automatic handoff
 
 After each turn, a hook checks the session's context size. Once it passes the
-threshold (default `250k` tokens, or a share such as `60%`), Claude runs the
+threshold (by default 300k tokens on a 1M-context model and half the window on a
+smaller one, so 100k of 200k; or set it, such as `250k` or `60%`), Claude runs the
 thread-handoff skill and tells you it's saved; you run `/clear` and continue in a small,
 fresh session. It asks once per session, updates the handoff once more if you keep going, and
 waits while background tasks run. This
@@ -175,7 +176,7 @@ agent-thread-tools jev-key status   # shows it masked: sk-or-v1…ac36
 
 The plugin turns this on; set its threshold with `AGENT_THREAD_AUTO_HANDOFF_AT`.
 Without the plugin, run `agent-thread-tools install-skill --agent claude
---auto-handoff --at 250k` (and `--no-auto-handoff` to remove it). Use one or the
+--auto-handoff` (and `--no-auto-handoff` to remove it). Use one or the
 other, not both. `AGENT_THREAD_AUTO_HANDOFF=off` skips it for a session. Hooks may not
 fire in the desktop app (a reported Claude Code issue), so check before relying on it.
 

@@ -60,10 +60,10 @@ def _claude_requests(path: Path) -> list[dict[str, Any]]:
         if message_id not in latest:
             order.append(message_id)
         # A reply is written once per content block; the last copy has the final usage.
-        latest[message_id] = (str(record.get("timestamp") or ""), usage)
+        latest[message_id] = (str(record.get("timestamp") or ""), usage, str(message.get("model") or ""))
     requests = []
     for message_id in order:
-        timestamp, usage = latest[message_id]
+        timestamp, usage, model = latest[message_id]
         number = lambda key: usage.get(key) if isinstance(usage.get(key), int) else 0
         read, write, fresh = (
             number("cache_read_input_tokens"),
@@ -78,6 +78,7 @@ def _claude_requests(path: Path) -> list[dict[str, Any]]:
                 "cache_write": write,
                 "fresh": fresh,
                 "output": number("output_tokens"),
+                "model": model,
             }
         )
     return requests
@@ -120,8 +121,13 @@ def weighted(requests: list[dict[str, Any]]) -> float:
 
 
 def compaction_point(requests: list[dict[str, Any]]) -> int:
+    from agent_thread_tools.claude_sessions import model_context_window
+
     largest = max((item["context"] for item in requests), default=0)
-    window = 1_000_000 if largest > 200_000 else 200_000
+    window = max(
+        [model_context_window(item.get("model"), largest) for item in requests]
+        or [model_context_window("", largest)]
+    )
     return int(window * COMPACTION_SHARE)
 
 
