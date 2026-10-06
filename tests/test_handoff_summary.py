@@ -230,7 +230,7 @@ def test_redact_sensitive_text_slack_token_uppercase_suffix() -> None:
 
 
 def test_redact_sensitive_text_long_format_values_dont_leak() -> None:
-    long_auth = "Authorization: Bearer " + ("a" * 9000)
+    long_auth = "Authorization: Bearer " + ("x" * 9000)
     long_uri = (
         "postgres://handoff_user:" ""
         + ("b" * 9000)
@@ -328,7 +328,7 @@ def test_redact_sensitive_text_api_key_with_trailing_punctuation() -> None:
 
 
 def test_redact_sensitive_text_generic_values_keep_no_secret_punctuation() -> None:
-    for value in ("password=!hunter2", "password=correct.horse"):
+    for value in ("password=!EXAMPLE", "password=xxxx.EXAMPLE"):
         redacted, count = redact_sensitive_text(value)
         assert redacted == "password=[REDACTED]"
         assert count == 1
@@ -352,7 +352,7 @@ def test_redact_sensitive_text_export_keyword_preserved() -> None:
 
 def test_redact_sensitive_text_quotes_json_and_yaml_style_credentials() -> None:
     values = (
-        '"password": "hunter2"',
+        '"password": "EXAMPLE"',
         "'client_secret': 'value'",
     )
     for value in values:
@@ -365,7 +365,7 @@ def test_redact_sensitive_text_quotes_json_and_yaml_style_credentials() -> None:
 
 
 def test_redact_sensitive_text_compact_json_credentials() -> None:
-    value = '{"password":"hunter2","safe":"visible","client_secret":"value"}'
+    value = '{"password":"EXAMPLE","safe":"visible","client_secret":"value"}'
 
     redacted, count = redact_sensitive_text(value)
 
@@ -377,7 +377,7 @@ def test_redact_sensitive_text_compact_json_credentials() -> None:
 
 
 def test_redact_sensitive_text_query_parameters_keep_delimiters() -> None:
-    value = "https://api.example.com/cb?access_token=abc123&client_secret=def456&scope=read"
+    value = "https://api.example.com/cb?access_token=EXAMPLE1&client_secret=EXAMPLE2&scope=read"
     redacted, count = redact_sensitive_text(value)
     assert redacted == "https://api.example.com/cb?access_token=[REDACTED]&client_secret=[REDACTED]&scope=read"
     assert count == 2
@@ -395,34 +395,34 @@ def test_redact_sensitive_text_rejects_repeated_secret_keywords_without_assignme
 
 def test_redact_sensitive_text_compound_labels_cover_compound_words_and_query_parameters() -> None:
     cases = (
-        ("api_secret=old_secret", "MYSECRET=old_secret"),
-        ('{"refreshToken":"abc123","monkey":"safe"}', "monkey"),
+        ("api_secret=EXAMPLE_old", "MYSECRET=EXAMPLE_old"),
+        ('{"refreshToken":"EXAMPLE1","monkey":"safe"}', "monkey"),
         (
-            "https://example.test/cb?refreshToken=abc123&api_secret=do-not-share&monkey=safe",
-            "abc123",
+            "https://example.test/cb?refreshToken=EXAMPLE1&api_secret=EXAMPLE-share&monkey=safe",
+            "EXAMPLE1",
         ),
     )
     for value in (
-        "MYSECRET=old_secret",
-        "MYAPIKEY=old_key",
-        "api_secret=do-not-share",
-        "refreshToken=mySecret",
-        "github_token=github-secret",
-        "oauthToken=oauth-secret",
-        "id_token=id-secret",
-        "personalAccessToken=personal-secret",
+        "MYSECRET=EXAMPLE_old",
+        "MYAPIKEY=EXAMPLE_key",
+        "api_secret=EXAMPLE-share",
+        "refreshToken=EXAMPLEvalue",
+        "github_token=EXAMPLE-github",
+        "oauthToken=EXAMPLE-oauth",
+        "id_token=EXAMPLE-id",
+        "personalAccessToken=EXAMPLE-personal",
     ):
         redacted, count = redact_sensitive_text(value)
         assert "[REDACTED]" in redacted
         assert count == 1
-        assert "do-not-share" not in redacted
+        assert "EXAMPLE-share" not in redacted
         assert "mySecret" not in redacted
-        assert "old_secret" not in redacted
-        assert "old_key" not in redacted
-        assert "github-secret" not in redacted
-        assert "oauth-secret" not in redacted
-        assert "id-secret" not in redacted
-        assert "personal-secret" not in redacted
+        assert "EXAMPLE_old" not in redacted
+        assert "EXAMPLE_key" not in redacted
+        assert "EXAMPLE-github" not in redacted
+        assert "EXAMPLE-oauth" not in redacted
+        assert "EXAMPLE-id" not in redacted
+        assert "EXAMPLE-personal" not in redacted
 
     json_case, _normal_key = cases[1]
     redacted, count = redact_sensitive_text(json_case)
@@ -458,7 +458,7 @@ def test_redact_sensitive_text_punctuation_only_secret_values_do_not_crash() -> 
 
 
 def test_redact_sensitive_text_quoted_value_with_escaped_quote_keeps_no_suffix_exposure() -> None:
-    value = 'API_SECRET="abc\\"def"'
+    value = 'API_SECRET="EXAMPLE\\"xxxx"'
     redacted, count = redact_sensitive_text(value)
 
     assert redacted == 'API_SECRET="[REDACTED]"'
@@ -481,10 +481,10 @@ def test_redact_sensitive_text_table_driven() -> None:
         ("AWS access key", aws_key, aws_key),
         (
             "Bearer JWT",
-            "Authorization: Bearer eyJ0ZXN0LmhlYWRlci5zaWduYXR1cmU.eyJwYXlsb2FkIn0.signature",
-            "eyJ0ZXN0LmhlYWRlci5zaWduYXR1cmU.eyJwYXlsb2FkIn0.signature",
+            "Authorization: Bearer EXAMPLExxxx.EXAMPLExxxx.EXAMPLE",
+            "EXAMPLExxxx.EXAMPLExxxx.EXAMPLE",
         ),
-        ("Basic auth", "Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==", "QWxhZGRpbjpvcGVuIHNlc2FtZQ=="),
+        ("Basic auth", "Authorization: Basic EXAMPLExxxxEXAMPLE==", "EXAMPLExxxxEXAMPLE=="),
         (
             "Postgres URI credentials",
             "postgres://handoff_user:" "EXAMPLE_xxxx@postgres.internal:5432/app?sslmode=require",
@@ -499,7 +499,7 @@ def test_redact_sensitive_text_table_driven() -> None:
         ("npm token", npm_token, npm_token),
         ("Slack token", slack_token, slack_token),
         ("JWT", "eyJ0ZXN0LmFoZWE.eyJwYXlsb2FkIn0.Zm9vYmFy", "eyJ0ZXN0LmFoZWE.eyJwYXlsb2FkIn0.Zm9vYmFy"),
-        ("Labeled assignment", "api-key=mysecretvalue", "mysecretvalue"),
+        ("Labeled assignment", "api-key=EXAMPLEvalue", "EXAMPLEvalue"),
         ("Shell assignment", "export SERVICE_PASSWORD=" "EXAMPLE-xxxx", "EXAMPLE-xxxx"),
         ("Auth assignment", "REGISTRY_AUTH=EXAMPLE-xxxx", "EXAMPLE-xxxx"),
     )
@@ -571,7 +571,7 @@ def test_redact_sensitive_text_safe_cases() -> None:
         "https://example.com/public?asset=logo.png",
         "The token stream for the parser can be long.",
         "ACaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
+        "EXAMPLExxxxEXAMPLE==",
     )
 
     for value in safe_cases:
