@@ -82,7 +82,7 @@ def test_summary_keeps_durable_context_and_redacts_tool_payloads(tmp_path: Path)
                     "content": [
                         {
                             "type": "input_text",
-                            "text": "Project fact: deploy target is staging. API key " + "sk-" + "test-secret",
+                            "text": "Project fact: deploy target is staging. API key " + "sk-" + "EXAMPLExxxxxxxx",
                         }
                     ],
                 },
@@ -92,7 +92,7 @@ def test_summary_keeps_durable_context_and_redacts_tool_payloads(tmp_path: Path)
                 "type": "response_item",
                 "payload": {
                     "type": "function_call_output",
-                    "output": "SECRET_TOKEN=" + "ghp_" + "do_not_copy\nraw build log contents",
+                    "output": "SECRET_TOKEN=" + "ghp_" + "EXAMPLE\nraw build log contents",
                 },
             },
             {
@@ -129,8 +129,8 @@ def test_summary_keeps_durable_context_and_redacts_tool_payloads(tmp_path: Path)
     assert payload["pre_handoff_safety"]["status"] == "clean"
     assert "Project fact: deploy target is staging." in context
     assert "Durable decision: use sidecar marker file" in context
-    assert "sk-" + "test-secret" not in rendered
-    assert "ghp_" + "do_not_copy" not in rendered
+    assert "sk-" + "EXAMPLExxxxxxxx" not in rendered
+    assert "ghp_" + "EXAMPLE" not in rendered
     assert "raw build log contents" not in rendered
     assert "[REDACTED]" in rendered
     assert payload["redactions"]["tool_payloads_omitted"] == 1
@@ -217,13 +217,13 @@ def test_pretty_summary_is_concise_and_human_readable(tmp_path: Path) -> None:
 
 
 def test_redact_sensitive_text_slack_token_uppercase_suffix() -> None:
-    value = "xoxb-" + "123456789012-1234567890123-ABCDefghIJKLm"
+    value = "xoxb-" + "EXAMPLE-xxxxxxxxxx-EXAMPLE"
     plain_value = "xoxabcdefghijkl"
 
     redacted, count = redact_sensitive_text(value)
     assert "[REDACTED]" in redacted
     assert count == 1
-    assert "ABCDefghIJKLm" not in redacted
+    assert "xxxxxxxxxx-EXAMPLE" not in redacted
     plain_redacted, plain_count = redact_sensitive_text(plain_value)
     assert plain_redacted == plain_value
     assert plain_count == 0
@@ -278,7 +278,7 @@ def test_redact_sensitive_text_uri_with_no_userinfo_keeps_path_unchanged() -> No
 
 
 def test_redact_sensitive_text_uri_userinfo_password_allows_colon_and_ampersand() -> None:
-    value = "postgres://handoff_user:" "pass:word&and@postgres.internal/db"
+    value = "postgres://handoff_user:" "xxxx:EXAMPLE&xxxx@postgres.internal/db"
 
     redacted, count = redact_sensitive_text(value)
     assert redacted == "postgres://[REDACTED]@postgres.internal/db"
@@ -287,11 +287,11 @@ def test_redact_sensitive_text_uri_userinfo_password_allows_colon_and_ampersand(
 
 def test_redact_sensitive_text_uri_userinfo_password_stops_at_delimiter_chars() -> None:
     values = (
-        "postgres://handoff_user:" "super secret@postgres.internal/db",
-        "postgres://handoff_user:" "super/secret@postgres.internal/db",
-        "postgres://handoff_user:" "super?secret@postgres.internal/db",
-        "postgres://handoff_user:" "super#secret@postgres.internal/db",
-        "postgres://handoff_user:" "super@secret@postgres.internal/db",
+        "postgres://handoff_user:" "xxxx EXAMPLE@postgres.internal/db",
+        "postgres://handoff_user:" "xxxx/EXAMPLE@postgres.internal/db",
+        "postgres://handoff_user:" "xxxx?EXAMPLE@postgres.internal/db",
+        "postgres://handoff_user:" "xxxx#EXAMPLE@postgres.internal/db",
+        "postgres://handoff_user:" "xxxx@EXAMPLE@postgres.internal/db",
     )
 
     for value in values:
@@ -321,7 +321,7 @@ def test_redact_sensitive_text_exact_redacted_assignment_not_counted() -> None:
 
 def test_redact_sensitive_text_api_key_with_trailing_punctuation() -> None:
     for suffix in (".", "]", "}", ">", "`"):
-        value = f"api-key=sk-" f"abcdefghijklmnop{suffix}"
+        value = f"api-key=sk-" f"EXAMPLExxxxxxxxx{suffix}"
         redacted, count = redact_sensitive_text(value)
         assert redacted == f"api-key=[REDACTED]{suffix}"
         assert count == 1
@@ -335,7 +335,7 @@ def test_redact_sensitive_text_generic_values_keep_no_secret_punctuation() -> No
 
 
 def test_redact_sensitive_text_overlapping_rules_count_one_secret_once() -> None:
-    value = "api-key=sk-" "abcdefghijklmnop"
+    value = "api-key=sk-" "EXAMPLExxxxxxxxx"
 
     redacted, count = redact_sensitive_text(value)
     assert redacted == "api-key=[REDACTED]"
@@ -343,7 +343,7 @@ def test_redact_sensitive_text_overlapping_rules_count_one_secret_once() -> None
 
 
 def test_redact_sensitive_text_export_keyword_preserved() -> None:
-    value = "export SERVICE_PASSWORD=" "do-not-keep"
+    value = "export SERVICE_PASSWORD=" "EXAMPLE-xxxx"
 
     redacted, count = redact_sensitive_text(value)
     assert redacted == "export SERVICE_PASSWORD=[REDACTED]"
@@ -468,15 +468,15 @@ def test_redact_sensitive_text_quoted_value_with_escaped_quote_keeps_no_suffix_e
 
 
 def test_redact_sensitive_text_table_driven() -> None:
-    aws_key = "AKIA" + "1234567890ABCDEF"
-    openai_key = "sk-" + "abcdefghijklmnopqrstuVWX"
-    github_token = "ghp_" + "abcdefghijklmnopqrstuvwxyz1234"
-    anthropic_key = "sk-ant-" + "api03-prod-abcdefghijklmnopqrstuvwxyz1234"
-    stripe_key = "sk_" + "live_abcdefghijklmnopqrstuvwxyz1234"
-    stripe_recovery_key = "rk_" + "live_abcdefghijklmnopqrstuvwxyz1234"
-    gitlab_token = "glpat-" + "abcdefghijklmnopqrstuvwxyz1234"
-    npm_token = "npm_" + "1234567890abcdefghijklmno"
-    slack_token = "xoxb-" + "123456789012-1234567890123-ABCDEFGHIJKLMNOP"
+    aws_key = "AKIA" + "IOSFODNN7EXAMPLE"
+    openai_key = "sk-" + "EXAMPLExxxxxxxxxqrstuVWX"
+    github_token = "ghp_" + "EXAMPLExxxxxxxxxqrstuvwxyz1234"
+    anthropic_key = "sk-ant-" + "api03-EXAMPLExxxxxxxxxxxxxxxxxxxxxx"
+    stripe_key = "sk_" + "live_EXAMPLExxxxxxxxxxxxxxxxxxxxxx"
+    stripe_recovery_key = "rk_" + "live_EXAMPLExxxxxxxxxxxxxxxxxxxxxx"
+    gitlab_token = "glpat-" + "EXAMPLExxxxxxxxxqrstuvwxyz1234"
+    npm_token = "npm_" + "EXAMPLExxxxxxxxxxxxxxxxxxx"
+    slack_token = "xoxb-" + "EXAMPLE-xxxxxxxxxx-EXAMPLExxxx"
     sensitive_cases = (
         ("AWS access key", aws_key, aws_key),
         (
@@ -487,8 +487,8 @@ def test_redact_sensitive_text_table_driven() -> None:
         ("Basic auth", "Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==", "QWxhZGRpbjpvcGVuIHNlc2FtZQ=="),
         (
             "Postgres URI credentials",
-            "postgres://handoff_user:" "super_secret@postgres.internal:5432/app?sslmode=require",
-            "super_secret",
+            "postgres://handoff_user:" "EXAMPLE_xxxx@postgres.internal:5432/app?sslmode=require",
+            "EXAMPLE_xxxx",
         ),
         ("OpenAI key", "openai_key=" + openai_key, openai_key),
         ("GitHub token", github_token, github_token),
@@ -500,8 +500,8 @@ def test_redact_sensitive_text_table_driven() -> None:
         ("Slack token", slack_token, slack_token),
         ("JWT", "eyJ0ZXN0LmFoZWE.eyJwYXlsb2FkIn0.Zm9vYmFy", "eyJ0ZXN0LmFoZWE.eyJwYXlsb2FkIn0.Zm9vYmFy"),
         ("Labeled assignment", "api-key=mysecretvalue", "mysecretvalue"),
-        ("Shell assignment", "export SERVICE_PASSWORD=" "do-not-keep", "do-not-keep"),
-        ("Auth assignment", "REGISTRY_AUTH=do-not-keep", "do-not-keep"),
+        ("Shell assignment", "export SERVICE_PASSWORD=" "EXAMPLE-xxxx", "EXAMPLE-xxxx"),
+        ("Auth assignment", "REGISTRY_AUTH=EXAMPLE-xxxx", "EXAMPLE-xxxx"),
     )
 
     for label, value, secret in sensitive_cases:
@@ -514,7 +514,7 @@ def test_redact_sensitive_text_table_driven() -> None:
 def test_redact_sensitive_text_multiline_pem() -> None:
     pem_text = (
         "-----BEGIN " "PRIVATE KEY-----\n"
-        "QUJDREVGSElKS0xNTk9Q\n"
+        "EXAMPLExxxxEXAMPLE\n"
         "UVdYWFpaW0FCQkNERUZH\n"
         "-----END " "PRIVATE KEY-----\n"
         "Use this credential only at startup."
@@ -602,7 +602,7 @@ def test_durable_context_keeps_text_around_pem_and_normalizes(tmp_path: Path) ->
                             "text": (
                                 "Bootstrap key material:\n"
                                 "-----BEGIN RSA " "PRIVATE KEY-----\n"
-                                "QUJDREVGSElKS0xNTk9Q\n"
+                                "EXAMPLExxxxEXAMPLE\n"
                                 "-----END RSA " "PRIVATE KEY-----\n"
                                 "Rotate it after deploy.\n"
                             ),
